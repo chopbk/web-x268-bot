@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useMemo, memo } from "react";
 import {
   Table,
   TableBody,
@@ -9,9 +9,76 @@ import {
   Paper,
   Button,
   Box,
+  TableSortLabel,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Checkbox,
+  ListItemText,
+  OutlinedInput,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import CancelIcon from "@mui/icons-material/Cancel";
+
+// Tách FilterSelect thành component riêng
+const FilterSelect = memo(
+  ({ field, label, values, selectedValues, onFilterChange }) => {
+    const allSelected = values.length === selectedValues.length;
+
+    const handleSelectAll = () => {
+      if (allSelected) {
+        onFilterChange(field, []);
+      } else {
+        onFilterChange(field, values);
+      }
+    };
+
+    return (
+      <FormControl size="small" sx={{ minWidth: 120, maxWidth: 200 }}>
+        <InputLabel>{label}</InputLabel>
+        <Select
+          multiple
+          value={selectedValues}
+          onChange={(e) => onFilterChange(field, e.target.value)}
+          input={<OutlinedInput label={label} />}
+          renderValue={(selected) => selected.join(", ")}
+          MenuProps={{
+            PaperProps: {
+              style: {
+                maxHeight: 300,
+              },
+            },
+            anchorOrigin: {
+              vertical: "bottom",
+              horizontal: "left",
+            },
+            transformOrigin: {
+              vertical: "top",
+              horizontal: "left",
+            },
+            // Thêm các props này để giữ menu mở
+            keepMounted: true,
+            disablePortal: true,
+          }}
+        >
+          <MenuItem onClick={handleSelectAll}>
+            <Checkbox checked={allSelected} />
+            <ListItemText primary={allSelected ? "Clear All" : "Select All"} />
+          </MenuItem>
+          <MenuItem divider />
+          {values.map((value) => (
+            <MenuItem key={value} value={value}>
+              <Checkbox checked={selectedValues.indexOf(value) > -1} />
+              <ListItemText primary={value} />
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    );
+  }
+);
 
 function PositionsTab({
   positions,
@@ -19,75 +86,227 @@ function PositionsTab({
   handleClosePosition,
   handleCancelOrders,
 }) {
+  const [orderBy, setOrderBy] = useState("");
+  const [order, setOrder] = useState("asc");
+  const [closePercents, setClosePercents] = useState({});
+  const [filters, setFilters] = useState({
+    user: [],
+    symbol: [],
+    positionSide: [],
+    type: [],
+  });
+  const [uniqueValues, setUniqueValues] = useState({
+    user: [],
+    symbol: [],
+    positionSide: [],
+    type: [],
+  });
+
+  // Sử dụng useMemo để tối ưu performance
+  const memoizedUniqueValues = useMemo(() => {
+    return {
+      user: [...new Set(positions.map((pos) => pos.user))],
+      symbol: [...new Set(positions.map((pos) => pos.symbol))],
+      positionSide: [...new Set(positions.map((pos) => pos.positionSide))],
+      type: [...new Set(positions.map((pos) => pos.type))],
+    };
+  }, [positions]);
+
+  // Cập nhật uniqueValues khi memoizedUniqueValues thay đổi
+  useEffect(() => {
+    setUniqueValues(memoizedUniqueValues);
+  }, [memoizedUniqueValues]);
+
+  const getUniqueValues = (field) => {
+    return uniqueValues[field] || [];
+  };
+
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const isPositionFiltered = (position) => {
+    return Object.entries(filters).every(([field, values]) => {
+      if (values.length === 0) return true;
+      return values.includes(position[field]);
+    });
+  };
+
+  const handleSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  const handleClosePercentChange = (symbol, value) => {
+    setClosePercents((prev) => ({
+      ...prev,
+      [symbol]: value,
+    }));
+  };
+
+  const sortedPositions = [...positions]
+    .filter(isPositionFiltered)
+    .sort((a, b) => {
+      if (!orderBy) return 0;
+
+      let aValue = a[orderBy];
+      let bValue = b[orderBy];
+
+      if (
+        orderBy === "roi" ||
+        orderBy === "unRealizedProfit" ||
+        orderBy === "leverage"
+      ) {
+        aValue = parseFloat(aValue);
+        bValue = parseFloat(bValue);
+      }
+
+      if (aValue < bValue) {
+        return order === "asc" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return order === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
+
+  const columns = [
+    { id: "user", label: "Account" },
+    { id: "symbol", label: "Symbol" },
+    { id: "positionSide", label: "Side" },
+    { id: "leverage", label: "Leverage" },
+    { id: "entryPrice", label: "Entry" },
+    { id: "markPrice", label: "Price" },
+    { id: "liquidationPrice", label: "Liq" },
+    { id: "roi", label: "ROI" },
+    { id: "unRealizedProfit", label: "PNL" },
+    { id: "volume", label: "Volume" },
+    { id: "type", label: "Type" },
+  ];
+
   return (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Account</TableCell>
-            <TableCell>Symbol</TableCell>
-            <TableCell>Side</TableCell>
-            <TableCell>Entry</TableCell>
-            <TableCell>Price</TableCell>
-            <TableCell>Liq</TableCell>
-            <TableCell>ROI</TableCell>
-            <TableCell>PNL</TableCell>
-            <TableCell>Volume</TableCell>
-            <TableCell>Type</TableCell>
-            <TableCell>Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {positions.map((position, index) => (
-            <TableRow key={index}>
-              <TableCell>{position.user}</TableCell>
-              <TableCell>{position.symbol}</TableCell>
-              <TableCell>{position.positionSide}</TableCell>
-              <TableCell>{position.entryPrice}</TableCell>
-              <TableCell>{position.markPrice}</TableCell>
-              <TableCell>{position.liquidationPrice}</TableCell>
-              <TableCell sx={{ color: position.roi >= 0 ? "green" : "red" }}>
-                {position.roi.toFixed(2)}%
-              </TableCell>
-              <TableCell
-                sx={{ color: position.unRealizedProfit >= 0 ? "green" : "red" }}
-              >
-                {position.unRealizedProfit.toFixed(2)}
-              </TableCell>
-              <TableCell>{position.volume}</TableCell>
-              <TableCell>{position.type}</TableCell>
-              <TableCell>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <Button
-                    variant="contained"
-                    color="error"
-                    size="small"
-                    startIcon={<CloseIcon />}
-                    onClick={() =>
-                      handleClosePosition(
-                        position.symbol,
-                        position.positionSide
-                      )
-                    }
+    <Box>
+      <Box sx={{ mb: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
+        <FilterSelect
+          field="user"
+          label="Account"
+          values={uniqueValues.user}
+          selectedValues={filters.user}
+          onFilterChange={handleFilterChange}
+        />
+        <FilterSelect
+          field="symbol"
+          label="Symbol"
+          values={uniqueValues.symbol}
+          selectedValues={filters.symbol}
+          onFilterChange={handleFilterChange}
+        />
+        <FilterSelect
+          field="positionSide"
+          label="Side"
+          values={uniqueValues.positionSide}
+          selectedValues={filters.positionSide}
+          onFilterChange={handleFilterChange}
+        />
+        <FilterSelect
+          field="type"
+          label="Type"
+          values={uniqueValues.type}
+          selectedValues={filters.type}
+          onFilterChange={handleFilterChange}
+        />
+      </Box>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              {columns.map((column) => (
+                <TableCell key={column.id}>
+                  <TableSortLabel
+                    active={orderBy === column.id}
+                    direction={orderBy === column.id ? order : "asc"}
+                    onClick={() => handleSort(column.id)}
                   >
-                    Close
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="warning"
-                    size="small"
-                    startIcon={<CancelIcon />}
-                    onClick={() => handleCancelOrders(position.symbol)}
-                  >
-                    Cancel Orders
-                  </Button>
-                </Box>
-              </TableCell>
+                    {column.label}
+                  </TableSortLabel>
+                </TableCell>
+              ))}
+              <TableCell>Close %</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+          </TableHead>
+          <TableBody>
+            {sortedPositions.map((position, index) => (
+              <TableRow key={index}>
+                <TableCell>{position.user}</TableCell>
+                <TableCell>{position.symbol}</TableCell>
+                <TableCell>{position.positionSide}</TableCell>
+                <TableCell>{position.leverage}x</TableCell>
+                <TableCell>{position.entryPrice}</TableCell>
+                <TableCell>{position.markPrice}</TableCell>
+                <TableCell>{position.liquidationPrice}</TableCell>
+                <TableCell sx={{ color: position.roi >= 0 ? "green" : "red" }}>
+                  {position.roi.toFixed(2)}%
+                </TableCell>
+                <TableCell
+                  sx={{
+                    color: position.unRealizedProfit >= 0 ? "green" : "red",
+                  }}
+                >
+                  {position.unRealizedProfit.toFixed(2)}
+                </TableCell>
+                <TableCell>{position.volume}</TableCell>
+                <TableCell>{position.type}</TableCell>
+                <TableCell>
+                  <TextField
+                    type="number"
+                    size="small"
+                    value={closePercents[position.symbol] || 100}
+                    onChange={(e) =>
+                      handleClosePercentChange(position.symbol, e.target.value)
+                    }
+                    inputProps={{ min: 1, max: 100 }}
+                    sx={{ width: "80px" }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      startIcon={<CloseIcon />}
+                      onClick={() =>
+                        handleClosePosition(
+                          position.symbol,
+                          position.positionSide,
+                          closePercents[position.symbol] || 100
+                        )
+                      }
+                    >
+                      Close
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="warning"
+                      size="small"
+                      startIcon={<CancelIcon />}
+                      onClick={() => handleCancelOrders(position.symbol)}
+                    >
+                      Cancel Orders
+                    </Button>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 }
 

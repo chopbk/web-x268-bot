@@ -37,7 +37,7 @@ const accountSockets = new Map();
 (async () => {
   let nodeEnv = process.env.NODE_ENV.toUpperCase();
   if (!nodeEnv) throw new Error("specific NODE_ENV");
-  let users = ["B1", "B2", "B3", "B4", "B5", "B6"];
+  let users = ["B1", "B4"];
   await require("./services/database/mongodb").init();
 
   await SymbolInfos.init();
@@ -45,37 +45,48 @@ const accountSockets = new Map();
 
   // init AccountConfig for traders and listeners
   await FuturesClient.init(users);
-  await Position.init(users);
+  // await Position.init(users);
+  const getBalanceAndProfit = async (startDate, endDate) => {
+    if (!startDate) startDate = new Date().toLocaleDateString();
+    if (!endDate) endDate = new Date().toLocaleDateString();
+    let BalanceAndProfits = [];
+    for (let user of users) {
+      let balances = await FuturesClient.getBalance(user);
+      let profit = await FuturesClient.getProfit(user, startDate, endDate);
+      BalanceAndProfits.push({
+        account: user,
+        balance: balances,
+        ...profit,
+      });
+    }
+    return BalanceAndProfits;
+  };
+  // let BalanceAndProfits = await getBalanceAndProfit();
   io.on("connection", async (socket) => {
     console.log("Client connected");
 
-    let positions = await Position.getAllPositions();
-    socket.emit("positions_update", positions);
-    const interval = setInterval(async () => {
-      let positions = await Position.getAllPositions();
-      socket.emit("positions_update", positions);
-    }, 1000); // Cập nhật mỗi 5 giây
+    // let positions = await Position.getAllPositions();
+    // socket.emit("positions_update", positions);
+    // const interval = setInterval(async () => {
+    //   let positions = await Position.getAllPositions();
+    //   socket.emit("positions_update", positions);
+    // }, 20000); // Cập nhật mỗi 5 giây
     // Lắng nghe sự kiện đăng ký theo dõi account
-    socket.on("subscribe_account", async (accountName) => {
-      console.log(`Client subscribed to account: ${accountName}`);
-      accountSockets.set(accountName, socket);
-      let positions = await Position.getAllPositions();
-      socket.emit("positions_update", positions);
-      const interval = setInterval(async () => {
-        let positions = await Position.getAllPositions();
-        socket.emit("positions_update", positions);
-      }, 1000); // Cập nhật mỗi 5 giây
-      // Gửi thông tin vị thế ban đầu
+    // socket.interval = interval;
 
-      // Bắt đầu theo dõi giá và cập nhật định kỳ
+    let BalanceAndProfits = await getBalanceAndProfit();
+    socket.emit("balance_profit", BalanceAndProfits);
 
-      // Lưu interval để clear khi disconnect
-      socket.interval = interval;
-    });
-    socket.on("get_balance_profit", async (accountName) => {
-      let balance = await FuturesClient.getBalance(accountName);
-      let profit = await FuturesClient.getProfit(accountName);
-      socket.emit("balance_profit", { balance, profit });
+    socket.on("calculate_profit", async ({ startDate, endDate }) => {
+      try {
+        console.log("calculate_profit", { startDate, endDate });
+
+        let BalanceAndProfits = await getBalanceAndProfit(startDate, endDate);
+        socket.emit("balance_profit", BalanceAndProfits);
+      } catch (error) {
+        console.error("Error calculating profit:", error);
+        socket.emit("error", "Failed to calculate profit");
+      }
     });
     // Xử lý đóng vị thế
     socket.on(
@@ -129,6 +140,6 @@ const accountSockets = new Map();
 // Xử lý kết nối websocket
 
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });

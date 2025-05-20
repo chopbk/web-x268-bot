@@ -3,7 +3,8 @@ const SymbolInfos = require("./symbol-info");
 const FuturesPrice = require("./prices");
 const Calculate = require("../utils/calculate");
 const MongoDb = require("../database/mongodb");
-
+const delay = require("../utils/delay");
+const logger = require("../utils/logger");
 async function getPositionsInfo(user) {
   try {
     const futuresClient = FuturesClient.getFuturesClient(user);
@@ -48,10 +49,11 @@ async function getPositionsInfo(user) {
         pos.user = user;
       })
     );
+    openPositions.sort((o1, o2) => o2.unRealizedProfit - o1.unRealizedProfit);
 
     return openPositions;
   } catch (error) {
-    console.error("Error getting positions:", error);
+    logger.error("Error getting positions:", error);
     return [];
   }
 }
@@ -74,13 +76,13 @@ class Position {
   constructor() {}
   async init(users) {
     this.users = users;
-    await Promise.all(
-      users.map(async (user) => {
-        const positions = await getPositionsInfo(user);
+    for (let user of users) {
+      const positions = await getPositionsInfo(user);
+      this[user] = positions;
+      await delay(1000);
+      logger.info(`Positions for ${user} fetched`);
+    }
 
-        this[user] = positions;
-      })
-    );
     this.scheduleUpdatePositions();
     this.scheduleUpdatePrice();
   }
@@ -90,7 +92,7 @@ class Position {
   scheduleUpdatePositions = async () => {
     setInterval(async () => {
       await this.init(this.users);
-    }, 1000 * 60 * 5);
+    }, 1000 * 60 * 10);
   };
   scheduleUpdatePrice = async () => {
     setInterval(async () => {
