@@ -13,7 +13,7 @@ import PositionsTab from "./tabs/PositionsTab";
 import BalanceProfitTab from "./tabs/BalanceProfitTab";
 import ConfigTab from "./tabs/ConfigTab";
 
-const socket = io("http://localhost:3001");
+const socket = io(window.location.origin.replace("3000", "3001"));
 
 function App() {
   const [tab, setTab] = useState(0);

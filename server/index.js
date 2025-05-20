@@ -11,13 +11,22 @@ const SymbolInfos = require("./services/storages/symbol-info");
 const FuturesClient = require("./services/storages/client");
 const Position = require("./services/storages/position");
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: "*", // Cho phép tất cả các domain
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*",
+    origin: "*", // Cho phép tất cả các domain
     methods: ["GET", "POST"],
+    credentials: true,
   },
+  allowEIO3: true, // Cho phép Engine.IO version 3
+  transports: ["websocket", "polling"], // Cho phép cả websocket và polling
 });
 
 // Lưu trữ các kết nối websocket theo account
