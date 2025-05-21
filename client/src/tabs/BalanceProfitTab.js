@@ -20,6 +20,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import CalculateIcon from "@mui/icons-material/Calculate";
+import { useBalance } from "../context/BalanceContext";
 
 function BalanceProfitTab({ userBalanceAndProfit, onCalculateProfit, users }) {
   const today = new Date();
@@ -29,12 +30,14 @@ function BalanceProfitTab({ userBalanceAndProfit, onCalculateProfit, users }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [localData, setLocalData] = useState([]);
+  const { setBalance } = useBalance();
 
   // Cập nhật localData khi có dữ liệu mới
   useEffect(() => {
     if (userBalanceAndProfit) {
       setLocalData(userBalanceAndProfit);
       setIsLoading(false);
+      setBalance(userBalanceAndProfit); // Cập nhật balance vào context
     }
   }, [userBalanceAndProfit]);
 
@@ -181,16 +184,16 @@ function BalanceProfitTab({ userBalanceAndProfit, onCalculateProfit, users }) {
                             color: user.profit >= 0 ? "green" : "red",
                           }}
                         >
-                          {user.profit.toFixed(2)}
+                          {user.profit?.toFixed(2)}
                         </TableCell>
                         <TableCell align="right">
-                          {user.fee.toFixed(2)}
+                          {user.fee?.toFixed(2)}
                         </TableCell>
                         <TableCell align="right">
-                          {user.ref.toFixed(2)}
+                          {user.ref?.toFixed(2)}
                         </TableCell>
                         <TableCell align="right">
-                          {user.funding.toFixed(2)}
+                          {user.funding?.toFixed(2)}
                         </TableCell>
                       </TableRow>
                     );

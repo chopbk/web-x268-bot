@@ -73,7 +73,9 @@ updatePosition = async (pos, exchange) => {
     (pos.markPrice - pos.entryPrice) * Math.abs(pos.positionAmt) * sign;
 };
 class Position {
-  constructor() {}
+  constructor() {
+    this.users = [];
+  }
   async init(users) {
     this.users = users;
 

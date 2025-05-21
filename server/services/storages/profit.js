@@ -3,12 +3,15 @@ const logger = require("../utils/logger");
 const delay = require("../utils/delay");
 const FuturesClient = require("./client");
 class Profit {
-  constructor() {}
-  async init(users) {
-    this.users = users;
+  constructor() {
+    this.users = [];
     this.todayProfit = {};
     this.yesterdayProfit = {};
     this.profits = {};
+  }
+  async init(users) {
+    this.users = users;
+
     await this.updateTodayProfit((users = users));
     await this.updateYesterdayProfit((users = users));
   }
@@ -25,7 +28,7 @@ class Profit {
         endDate
       );
       result[user] = userProfit;
-      await delay(100);
+      await delay(1000);
     }
     return result;
   };
@@ -67,7 +70,7 @@ class Profit {
             endTime: dayEnd.getTime(),
             limit: 1000,
           });
-
+          await delay(500);
           if (profits.code) {
             logger.error(`[getProfit] Binance API error: ${profits.msg}`);
             break;
@@ -123,8 +126,6 @@ class Profit {
             },
             { upsert: true }
           );
-
-          await delay(500);
         } else {
           // Lấy dữ liệu từ DB
           dayProfit = dayProfitDb.profit || 0;
@@ -181,10 +182,10 @@ class Profit {
     }
   };
   getTodayProfit = async () => {
-    return this.todayProfit;
+    return this.todayProfit || {};
   };
   getYesterdayProfit = async () => {
-    return this.yesterdayProfit;
+    return this.yesterdayProfit || {};
   };
 }
 

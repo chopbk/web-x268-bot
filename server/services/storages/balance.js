@@ -2,10 +2,13 @@ const logger = require("../utils/logger");
 const FuturesClient = require("./client");
 const delay = require("../utils/delay");
 class Balance {
-  constructor() {}
+  constructor() {
+    this.users = [];
+    this.balance = {};
+  }
   async init(users) {
     this.users = users;
-    this.balance = {};
+
     await this.updateBalance(users);
   }
   update = async () => {

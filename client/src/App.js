@@ -5,6 +5,8 @@ import DashboardTab from "./tabs/DashboardTab";
 import PositionsTab from "./tabs/PositionsTab";
 import BalanceProfitTab from "./tabs/BalanceProfitTab";
 import ConfigTab from "./tabs/ConfigTab";
+import SignalConfigTab from "./tabs/SignalConfigTab";
+import { BalanceProvider } from "./context/BalanceContext";
 
 // const socket = io("http://167.179.108.96:3001", {
 //   transports: ["websocket", "polling"],
@@ -36,9 +38,13 @@ function App() {
     // Gửi sự kiện click tab đến server
     socket.emit("tab_changed", {
       tabIndex: newValue,
-      tabName: ["Dashboard", "Positions", "Balance & Profit", "Config"][
-        newValue
-      ],
+      tabName: [
+        "Dashboard",
+        "Positions",
+        "Balance & Profit",
+        "Config",
+        "Signal Config",
+      ][newValue],
     });
   };
 
@@ -102,51 +108,59 @@ function App() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, px: 4 }}>
-      <Tabs value={tab} onChange={handleTabChange}>
-        <Tab label="Dashboard" />
-        <Tab label="Positions" />
-        <Tab label="Balance & Profit" />
-        <Tab label="Config" />
-      </Tabs>
-      <Box sx={{ mt: 2 }}>
-        {tab === 0 && (
-          <DashboardTab
-            socket={socket}
-            users={users}
-            onUsersChange={handleUsersChange}
-          />
-        )}
-        {tab === 1 && (
-          <PositionsTab
-            positions={positions}
-            closePercent={closePercent}
-            handleClosePosition={handleClosePosition}
-            handleCancelOrders={handleCancelOrders}
-            socket={socket}
-          />
-        )}
-        {tab === 2 && (
-          <BalanceProfitTab
-            userBalanceAndProfit={userBalanceAndProfit}
-            onCalculateProfit={handleCalculateProfit}
-            users={activeUsers}
-          />
-        )}
-        {tab === 3 && (
-          <ConfigTab
-            config={config}
-            onConfigChange={handleConfigChange}
-            onConfigSave={handleConfigSave}
-          />
-        )}
-        {error && (
-          <Typography color="error" sx={{ mt: 2 }}>
-            {error}
-          </Typography>
-        )}
-      </Box>
-    </Container>
+    <BalanceProvider>
+      <Container
+        maxWidth={false}
+        disableGutters
+        sx={{ height: "100vh", width: "100vw", overflow: "auto" }}
+      >
+        <Tabs value={tab} onChange={handleTabChange}>
+          <Tab label="Dashboard" />
+          <Tab label="Positions" />
+          <Tab label="Balance & Profit" />
+          <Tab label="Config" />
+          <Tab label="Signal Config" />
+        </Tabs>
+        <Box sx={{ p: 2, height: "calc(100vh - 48px)" }}>
+          {tab === 0 && (
+            <DashboardTab
+              socket={socket}
+              users={users}
+              onUsersChange={handleUsersChange}
+            />
+          )}
+          {tab === 1 && (
+            <PositionsTab
+              positions={positions}
+              closePercent={closePercent}
+              handleClosePosition={handleClosePosition}
+              handleCancelOrders={handleCancelOrders}
+              socket={socket}
+            />
+          )}
+          {tab === 2 && (
+            <BalanceProfitTab
+              userBalanceAndProfit={userBalanceAndProfit}
+              onCalculateProfit={handleCalculateProfit}
+              users={activeUsers}
+            />
+          )}
+          {tab === 3 && (
+            <ConfigTab
+              config={config}
+              onConfigChange={handleConfigChange}
+              onConfigSave={handleConfigSave}
+            />
+          )}
+          {tab === 4 && <SignalConfigTab />}
+          {error && (
+            <Typography color="error" sx={{ mt: 2 }}>
+              {error}
+            </Typography>
+          )}
+        </Box>
+      </Container>
+    </BalanceProvider>
   );
 }
 
