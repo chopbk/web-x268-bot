@@ -15,7 +15,7 @@ class Balance {
     try {
       for (let user of users) {
         this.balance[user] = await this.updateBalanceOfUser(user);
-        await delay(100);
+        await delay(1000);
       }
       return this.balance;
     } catch (error) {

@@ -145,7 +145,7 @@ const updateBalanceAndProfit = async (startDate, endDate, users) => {
             socket.interval = setInterval(async () => {
               let positions = await Position.getAllPositions();
               socket.emit("positions_update", positions);
-            }, 1000 * 10);
+            }, 1000 * 15);
           }
 
           break;
@@ -175,7 +175,7 @@ const updateBalanceAndProfit = async (startDate, endDate, users) => {
         // await Position.update();
         // await delay(100);
         await Profit.update();
-        await delay(100);
+        await delay(1000);
         await Balance.update();
         socket.emit("bot_info", await getBotInfo(socket.activeUsers));
       } catch (error) {

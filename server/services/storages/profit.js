@@ -14,7 +14,7 @@ class Profit {
   }
   update = async () => {
     await this.updateTodayProfit(this.users);
-    await this.updateYesterdayProfit(this.users);
+    // await this.updateYesterdayProfit(this.users);
   };
   updateProfit = async (users, startDate, endDate) => {
     let result = {};
@@ -165,6 +165,7 @@ class Profit {
     let end = new Date(today.toLocaleDateString());
     for (let user of users) {
       let profit = await this.updateProfitFromStartToEnd(user, start, end);
+      await delay(1000);
       this.todayProfit[user] = profit;
     }
   };
@@ -175,6 +176,7 @@ class Profit {
     let end = new Date(yesterday.toLocaleDateString());
     for (let user of users) {
       let profit = await this.updateProfitFromStartToEnd(user, start, end);
+      await delay(1000);
       this.yesterdayProfit[user] = profit;
     }
   };

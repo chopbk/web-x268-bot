@@ -88,7 +88,7 @@ class Position {
     for (let user of this.users) {
       const positions = await getPositionsInfo(user);
       this[user] = positions;
-      await delay(1000);
+      await delay(5000);
       logger.info(`Positions for ${user} fetched`);
     }
   };
