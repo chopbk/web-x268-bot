@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import CancelIcon from "@mui/icons-material/Cancel";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 // Tách FilterSelect thành component riêng
 const FilterSelect = memo(
@@ -85,10 +86,12 @@ function PositionsTab({
   closePercent,
   handleClosePosition,
   handleCancelOrders,
+  socket,
 }) {
   const [orderBy, setOrderBy] = useState("");
   const [order, setOrder] = useState("asc");
   const [closePercents, setClosePercents] = useState({});
+  const [isUpdating, setIsUpdating] = useState(false);
   const [filters, setFilters] = useState({
     user: [],
     symbol: [],
@@ -148,6 +151,15 @@ function PositionsTab({
     }));
   };
 
+  const handleUpdatePositions = () => {
+    setIsUpdating(true);
+    socket.emit("refreshPosition");
+    // Tự động tắt trạng thái updating sau 2 giây
+    setTimeout(() => {
+      setIsUpdating(false);
+    }, 2000);
+  };
+
   const sortedPositions = [...positions]
     .filter(isPositionFiltered)
     .sort((a, b) => {
@@ -190,7 +202,15 @@ function PositionsTab({
 
   return (
     <Box>
-      <Box sx={{ mb: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
+      <Box
+        sx={{
+          mb: 2,
+          display: "flex",
+          gap: 2,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
         <FilterSelect
           field="user"
           label="Account"
@@ -219,6 +239,15 @@ function PositionsTab({
           selectedValues={filters.type}
           onFilterChange={handleFilterChange}
         />
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<RefreshIcon />}
+          onClick={handleUpdatePositions}
+          disabled={isUpdating}
+        >
+          {isUpdating ? "Updating..." : "Update Positions"}
+        </Button>
       </Box>
       <TableContainer component={Paper}>
         <Table>

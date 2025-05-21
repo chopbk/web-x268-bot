@@ -4,12 +4,15 @@ const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
 const cors = require("cors");
-
-const Calculate = require("./services/utils/calculate");
+const fs = require("fs");
+const delay = require("./services/utils/delay");
 const FuturesPrice = require("./services/storages/prices");
 const SymbolInfos = require("./services/storages/symbol-info");
 const FuturesClient = require("./services/storages/client");
 const Position = require("./services/storages/position");
+const Profit = require("./services/storages/profit");
+const Balance = require("./services/storages/balance");
+
 const app = express();
 app.use(
   cors({
@@ -32,12 +35,75 @@ const io = socketIo(server, {
 // Lưu trữ các kết nối websocket theo account
 const accountSockets = new Map();
 
+let users = process.env.USERS.toUpperCase().split(",") || ["V"];
 // Hàm lấy thông tin vị thế
+const getBotInfo = async (users) => {
+  const positions = await Position.getAllPositions();
+  let todayProfits = await Profit.getTodayProfit();
+  let yesterdayProfits = await Profit.getYesterdayProfit();
+  let balances = await Balance.getAllBalance();
 
+  let todayProfit = Object.keys(todayProfits).reduce(
+    (sum, user) => sum + todayProfits[user].profit,
+    0
+  );
+  let yesterdayProfit = Object.keys(yesterdayProfits).reduce(
+    (sum, user) => sum + yesterdayProfits[user].profit,
+    0
+  );
+  let totalBalance = Object.keys(balances).reduce(
+    (sum, user) => sum + balances[user].availableBalance,
+    0
+  );
+  let unrealizedProfit = Object.keys(balances).reduce(
+    (sum, user) => sum + balances[user].unrealizedProfit,
+    0
+  );
+  return {
+    version: "1.0.0",
+    status: "Running",
+    users: users.join(", "),
+    lastUpdate: new Date().toLocaleString(),
+    totalPositions: positions.length,
+    totalUser: users.length,
+    totalProfit: todayProfit,
+    totalProfitYesterday: yesterdayProfit,
+    totalBalance: totalBalance,
+    unrealizedProfit: unrealizedProfit,
+  };
+};
+const getBalanceAndProfit = async (users) => {
+  let result = [];
+  let profits = await Profit.getTodayProfit();
+  let balances = await Balance.getAllBalance();
+  for (let user of users) {
+    result.push({
+      account: user,
+      ...balances[user],
+      ...profits[user],
+    });
+  }
+  return result;
+};
+const updateBalanceAndProfit = async (startDate, endDate, users) => {
+  if (!startDate) startDate = new Date().toLocaleDateString();
+  if (!endDate) endDate = new Date().toLocaleDateString();
+  let result = [];
+  let profits = await Profit.updateProfit(users, startDate, endDate);
+  let balances = await Balance.updateBalance(users);
+  for (let user of users) {
+    result.push({
+      account: user,
+      ...balances[user],
+      ...profits[user],
+    });
+  }
+  return result;
+};
 (async () => {
   let nodeEnv = process.env.NODE_ENV.toUpperCase();
   if (!nodeEnv) throw new Error("specific NODE_ENV");
-  let users = ["B1", "B4"];
+
   await require("./services/database/mongodb").init();
 
   await SymbolInfos.init();
@@ -45,49 +111,99 @@ const accountSockets = new Map();
 
   // init AccountConfig for traders and listeners
   await FuturesClient.init(users);
-  // await Position.init(users);
-  const getBalanceAndProfit = async (startDate, endDate) => {
-    if (!startDate) startDate = new Date().toLocaleDateString();
-    if (!endDate) endDate = new Date().toLocaleDateString();
-    let BalanceAndProfits = [];
-    for (let user of users) {
-      let balances = await FuturesClient.getBalance(user);
-      let profit = await FuturesClient.getProfit(user, startDate, endDate);
-      BalanceAndProfits.push({
-        account: user,
-        balance: balances,
-        ...profit,
-      });
-    }
-    return BalanceAndProfits;
-  };
-  // let BalanceAndProfits = await getBalanceAndProfit();
+  await Position.init(users);
+  await Profit.init(users);
+  await Balance.init(users);
+  let balanceAndProfits = await getBalanceAndProfit(users);
+  let botInfo = await getBotInfo(users);
+
+  console.log(`init done for ${users}`);
   io.on("connection", async (socket) => {
     console.log("Client connected");
+    socket.activeUsers = users;
+    // Gửi danh sách users khi client kết nối
+    socket.emit("users_list", users);
 
-    // let positions = await Position.getAllPositions();
-    // socket.emit("positions_update", positions);
-    // const interval = setInterval(async () => {
-    //   let positions = await Position.getAllPositions();
-    //   socket.emit("positions_update", positions);
-    // }, 20000); // Cập nhật mỗi 5 giây
-    // Lắng nghe sự kiện đăng ký theo dõi account
-    // socket.interval = interval;
+    // socket.emit("balance_profit", balanceAndProfits);
+    socket.emit("active_users", socket.activeUsers);
+    socket.emit("bot_info", botInfo);
 
-    let BalanceAndProfits = await getBalanceAndProfit();
-    socket.emit("balance_profit", BalanceAndProfits);
+    // Xử lý sự kiện click tab
+    socket.on("tab_changed", async ({ tabIndex, tabName }) => {
+      console.log(`Client switched to tab: ${tabName} (${tabIndex})`);
 
-    socket.on("calculate_profit", async ({ startDate, endDate }) => {
-      try {
-        console.log("calculate_profit", { startDate, endDate });
+      // Xử lý dữ liệu tương ứng với từng tab
+      switch (tabIndex) {
+        case 0: // Dashboard tab
+          socket.emit("bot_info", await getBotInfo(socket.activeUsers));
+          break;
+        case 1: // Positions tab
+          let positions = await Position.getAllPositions();
+          socket.emit("positions_update", positions);
+          // Cập nhật vị thế mỗi 10 giây cho socket khi có vị thế
+          if (positions.length != 0 && !socket.interval) {
+            socket.interval = setInterval(async () => {
+              let positions = await Position.getAllPositions();
+              socket.emit("positions_update", positions);
+            }, 1000 * 10);
+          }
 
-        let BalanceAndProfits = await getBalanceAndProfit(startDate, endDate);
-        socket.emit("balance_profit", BalanceAndProfits);
-      } catch (error) {
-        console.error("Error calculating profit:", error);
-        socket.emit("error", "Failed to calculate profit");
+          break;
+        case 2: // Balance & Profit tab
+          balanceAndProfits = await getBalanceAndProfit(socket.activeUsers);
+          socket.emit("balance_profit", balanceAndProfits);
+          break;
+        case 3: // Config tab
+          // const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+          // socket.emit("config_data", config);
+          break;
       }
     });
+
+    // Xử lý sự kiện set active users
+    socket.on("set_active_users", (users) => {
+      socket.activeUsers = users;
+    });
+
+    socket.on("refreshPosition", async () => {
+      await Position.update();
+      let positions = await Position.getAllPositions();
+      socket.emit("positions_update", positions);
+    });
+    socket.on("refreshDashboard", async () => {
+      try {
+        // await Position.update();
+        // await delay(100);
+        await Profit.update();
+        await delay(100);
+        await Balance.update();
+        socket.emit("bot_info", await getBotInfo(socket.activeUsers));
+      } catch (error) {
+        console.error("Error refreshing dashboard:", error);
+        socket.emit("error", "Failed to refresh dashboard");
+      }
+    });
+
+    socket.on(
+      "calculate_profit",
+      async ({ startDate, endDate, selectedUser }) => {
+        try {
+          console.log("calculate_profit", { startDate, endDate, selectedUser });
+          if (!selectedUser || !users.includes(selectedUser))
+            selectedUser = users;
+          else selectedUser = [selectedUser];
+          let calculateBalanceAndProfit = await updateBalanceAndProfit(
+            startDate,
+            endDate,
+            selectedUser
+          );
+          socket.emit("balance_profit", calculateBalanceAndProfit);
+        } catch (error) {
+          console.error("Error calculating profit:", error);
+          socket.emit("error", "Failed to calculate profit");
+        }
+      }
+    );
     // Xử lý đóng vị thế
     socket.on(
       "close_position",
@@ -127,6 +243,7 @@ const accountSockets = new Map();
       if (socket.interval) {
         clearInterval(socket.interval);
       }
+
       // Xóa socket khỏi Map
       for (let [account, sock] of accountSockets.entries()) {
         if (sock === socket) {

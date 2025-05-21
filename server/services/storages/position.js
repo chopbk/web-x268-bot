@@ -76,22 +76,28 @@ class Position {
   constructor() {}
   async init(users) {
     this.users = users;
-    for (let user of users) {
+
+    await this.updatePositionInfoFromExchange();
+    this.scheduleUpdatePositions();
+    this.scheduleUpdatePrice();
+  }
+  update = async () => {
+    await this.updatePositionInfoFromExchange();
+  };
+  updatePositionInfoFromExchange = async () => {
+    for (let user of this.users) {
       const positions = await getPositionsInfo(user);
       this[user] = positions;
       await delay(1000);
       logger.info(`Positions for ${user} fetched`);
     }
-
-    this.scheduleUpdatePositions();
-    this.scheduleUpdatePrice();
-  }
+  };
   getPositionsInfo = async (user) => {
     return this[user];
   };
   scheduleUpdatePositions = async () => {
     setInterval(async () => {
-      await this.init(this.users);
+      await this.updatePositionInfoFromExchange(this.users);
     }, 1000 * 60 * 10);
   };
   scheduleUpdatePrice = async () => {

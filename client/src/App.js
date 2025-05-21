@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { Container, Tabs, Tab, Box, Typography } from "@mui/material";
+import DashboardTab from "./tabs/DashboardTab";
 import PositionsTab from "./tabs/PositionsTab";
 import BalanceProfitTab from "./tabs/BalanceProfitTab";
 import ConfigTab from "./tabs/ConfigTab";
@@ -23,7 +24,8 @@ function App() {
   const [accountName, setAccountName] = useState("");
   const [positions, setPositions] = useState([]);
   const [userBalanceAndProfit, setUserBalanceAndProfit] = useState([]);
-
+  const [users, setUsers] = useState([]);
+  const [activeUsers, setActiveUsers] = useState([]);
   const [config, setConfig] = useState(null);
   const [error, setError] = useState("");
   const [closePercent, setClosePercent] = useState(100);
@@ -31,12 +33,24 @@ function App() {
   // Tab change handler
   const handleTabChange = (event, newValue) => {
     setTab(newValue);
+    // Gửi sự kiện click tab đến server
+    socket.emit("tab_changed", {
+      tabIndex: newValue,
+      tabName: ["Dashboard", "Positions", "Balance & Profit", "Config"][
+        newValue
+      ],
+    });
   };
 
-  const handleCalculateProfit = async ({ startDate, endDate }) => {
+  const handleCalculateProfit = async ({
+    startDate,
+    endDate,
+    selectedUser,
+  }) => {
     socket.emit("calculate_profit", {
       startDate,
       endDate,
+      selectedUser,
     });
   };
 
@@ -46,12 +60,16 @@ function App() {
     socket.on("balance_profit", setUserBalanceAndProfit);
     socket.on("config_data", setConfig);
     socket.on("error", setError);
+    socket.on("users_list", setUsers);
+    socket.on("active_users", setActiveUsers);
 
     return () => {
       socket.off("positions_update");
       socket.off("balance_profit");
       socket.off("config_data");
       socket.off("error");
+      socket.off("users_list");
+      socket.off("active_users");
     };
   }, []);
 
@@ -79,29 +97,43 @@ function App() {
     socket.emit("set_config", { accountName, config: newConfig });
   };
 
+  const handleUsersChange = (newActiveUsers) => {
+    setActiveUsers(newActiveUsers);
+  };
+
   return (
     <Container maxWidth="xl" sx={{ mt: 4, px: 4 }}>
       <Tabs value={tab} onChange={handleTabChange}>
+        <Tab label="Dashboard" />
         <Tab label="Positions" />
         <Tab label="Balance & Profit" />
         <Tab label="Config" />
       </Tabs>
       <Box sx={{ mt: 2 }}>
         {tab === 0 && (
+          <DashboardTab
+            socket={socket}
+            users={users}
+            onUsersChange={handleUsersChange}
+          />
+        )}
+        {tab === 1 && (
           <PositionsTab
             positions={positions}
             closePercent={closePercent}
             handleClosePosition={handleClosePosition}
             handleCancelOrders={handleCancelOrders}
-          />
-        )}
-        {tab === 1 && (
-          <BalanceProfitTab
-            userBalanceAndProfit={userBalanceAndProfit}
-            onCalculateProfit={handleCalculateProfit}
+            socket={socket}
           />
         )}
         {tab === 2 && (
+          <BalanceProfitTab
+            userBalanceAndProfit={userBalanceAndProfit}
+            onCalculateProfit={handleCalculateProfit}
+            users={activeUsers}
+          />
+        )}
+        {tab === 3 && (
           <ConfigTab
             config={config}
             onConfigChange={handleConfigChange}
