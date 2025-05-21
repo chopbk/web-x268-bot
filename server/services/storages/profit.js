@@ -70,7 +70,7 @@ class Profit {
             endTime: dayEnd.getTime(),
             limit: 1000,
           });
-          await delay(500);
+          await delay(200);
           if (profits.code) {
             logger.error(`[getProfit] Binance API error: ${profits.msg}`);
             break;
@@ -88,7 +88,7 @@ class Profit {
             );
             length = temp.length;
             profits = profits.concat(temp);
-            await delay(500);
+            await delay(200);
           }
 
           if (!profits || profits.length === 0) {
@@ -166,7 +166,7 @@ class Profit {
     let end = new Date(today.toLocaleDateString());
     for (let user of users) {
       let profit = await this.updateProfitFromStartToEnd(user, start, end);
-      await delay(1000);
+      await delay(100);
       this.todayProfit[user] = profit;
     }
   };
@@ -177,7 +177,7 @@ class Profit {
     let end = new Date(yesterday.toLocaleDateString());
     for (let user of users) {
       let profit = await this.updateProfitFromStartToEnd(user, start, end);
-      await delay(1000);
+
       this.yesterdayProfit[user] = profit;
     }
   };

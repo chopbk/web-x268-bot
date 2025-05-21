@@ -65,15 +65,18 @@ const startServer = async () => {
     const app = express();
 
     // Cấu hình CORS
+    let url = process.env.URL;
+    let origin = ["http://localhost:3000", "http://127.0.0.1:3000"];
+    if (url) origin.push(`${url}/`);
     app.use(
       cors({
-        origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+        origin,
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true,
       })
     );
 
-    // Middleware để parse JSON
+    // Middleware để parse JSONenv
     app.use(express.json());
 
     // Middleware để thêm users vào req

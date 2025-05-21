@@ -227,7 +227,9 @@ function SignalConfigTab() {
   const fetchConfigs = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:3001/api/signal-configs");
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/signal-configs`
+      );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

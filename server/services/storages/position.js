@@ -78,28 +78,34 @@ class Position {
   }
   async init(users) {
     this.users = users;
-
-    await this.updatePositionInfoFromExchange();
+    for (let user of this.users) {
+      await this.updatePositionInfoFromExchange(user);
+      await delay(100);
+    }
     this.scheduleUpdatePositions();
     this.scheduleUpdatePrice();
   }
   update = async () => {
-    await this.updatePositionInfoFromExchange();
-  };
-  updatePositionInfoFromExchange = async () => {
     for (let user of this.users) {
-      const positions = await getPositionsInfo(user);
-      this[user] = positions;
+      await this.updatePositionInfoFromExchange(user);
       await delay(5000);
-      logger.info(`Positions for ${user} fetched`);
     }
+  };
+  updatePositionInfoFromExchange = async (user) => {
+    const positions = await getPositionsInfo(user);
+    this[user] = positions;
+
+    logger.info(`Positions for ${user} fetched`);
   };
   getPositionsInfo = async (user) => {
     return this[user];
   };
   scheduleUpdatePositions = async () => {
     setInterval(async () => {
-      await this.updatePositionInfoFromExchange(this.users);
+      for (let user of this.users) {
+        await this.updatePositionInfoFromExchange(user);
+        await delay(10000);
+      }
     }, 1000 * 60 * 10);
   };
   scheduleUpdatePrice = async () => {
