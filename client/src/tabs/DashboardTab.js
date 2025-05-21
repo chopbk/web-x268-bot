@@ -147,7 +147,7 @@ function DashboardTab({ socket, users, onUsersChange }) {
         </Grid>
 
         {/* User Selection */}
-        <Grid item xs={12} md={4}>
+        {/* <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h5" gutterBottom>
               Active Users
@@ -182,7 +182,7 @@ function DashboardTab({ socket, users, onUsersChange }) {
               Save Active Users
             </Button>
           </Paper>
-        </Grid>
+        </Grid> */}
       </Grid>
     </Box>
   );

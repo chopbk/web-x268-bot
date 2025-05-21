@@ -847,9 +847,9 @@ function SignalConfigTab() {
                     Account Signal
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 80 }}>Signal</TableCell>
-                <TableCell sx={{ maxWidth: 80 }}>Blacklist</TableCell>
-                <TableCell sx={{ maxWidth: 20 }}>
+                <TableCell sx={{ maxWidth: 100 }}>Signal</TableCell>
+                <TableCell sx={{ maxWidth: 150 }}>Blacklist</TableCell>
+                <TableCell sx={{ maxWidth: 50 }}>
                   <TableSortLabel
                     active={sortConfig.key === "volume"}
                     direction={
@@ -860,7 +860,7 @@ function SignalConfigTab() {
                     Volume
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 10 }}>TP</TableCell>
+                <TableCell sx={{ maxWidth: 50 }}>TP</TableCell>
                 <TableCell sx={{ maxWidth: 10 }}>SL</TableCell>
                 <TableCell sx={{ maxWidth: 10 }}>
                   <TableSortLabel
@@ -884,11 +884,11 @@ function SignalConfigTab() {
                     Loss
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 10 }}>On</TableCell>
-                <TableCell sx={{ maxWidth: 10 }}>Long</TableCell>
-                <TableCell sx={{ maxWidth: 10 }}>Short</TableCell>
-                <TableCell sx={{ maxWidth: 15 }}>Open Type</TableCell>
-                <TableCell sx={{ maxWidth: 15 }}>
+                <TableCell sx={{ maxWidth: 20 }}>On</TableCell>
+                <TableCell sx={{ maxWidth: 20 }}>Long</TableCell>
+                <TableCell sx={{ maxWidth: 20 }}>Short</TableCell>
+                <TableCell sx={{ maxWidth: 50 }}>Open Type</TableCell>
+                <TableCell sx={{ maxWidth: 50 }}>
                   <TableSortLabel
                     active={sortConfig.key === "marginMode"}
                     direction={
@@ -901,7 +901,7 @@ function SignalConfigTab() {
                     Margin Mode
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 15 }}>
+                <TableCell sx={{ maxWidth: 50 }}>
                   <TableSortLabel
                     active={sortConfig.key === "slType"}
                     direction={
@@ -912,7 +912,7 @@ function SignalConfigTab() {
                     SL Type
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 10 }}>Trailing Type</TableCell>
+                <TableCell sx={{ maxWidth: 50 }}>Trailing Type</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -927,16 +927,16 @@ function SignalConfigTab() {
                   <TableRow key={config._id}>
                     <TableCell>{config.user}</TableCell>
                     <TableCell>{config.accountSignal}</TableCell>
-                    <TableCell sx={{ maxWidth: 80 }}>
+                    <TableCell sx={{ maxWidth: 100 }}>
                       <ArrayDisplay items={config.signal} />
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 80 }}>
+                    <TableCell sx={{ maxWidth: 120 }}>
                       <ArrayDisplay items={config.blacklist} />
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 20 }}>
+                    <TableCell sx={{ maxWidth: 50 }}>
                       {configDetails.volume.toFixed(1)} USDT
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 50 }}>
+                    <TableCell sx={{ maxWidth: 80 }}>
                       <ArrayDisplay
                         items={config.trade_config.TP?.PERCENT.map(
                           (item) => (item * 100).toFixed(1) + "%"
@@ -953,28 +953,28 @@ function SignalConfigTab() {
                         </Typography>
                       </Tooltip>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 15 }}>
+                    <TableCell sx={{ maxWidth: 20 }}>
                       <Typography>${configDetails.loss.toFixed(1)}</Typography>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 10 }}>
+                    <TableCell sx={{ maxWidth: 15 }}>
                       <Switch checked={config.on} disabled />
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 10 }}>
+                    <TableCell sx={{ maxWidth: 15 }}>
                       <Switch checked={config.trade_config.LONG} disabled />
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 10 }}>
+                    <TableCell sx={{ maxWidth: 15 }}>
                       <Switch checked={config.trade_config.SHORT} disabled />
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 10 }}>
+                    <TableCell sx={{ maxWidth: 80 }}>
                       {config.openType}
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 10 }}>
+                    <TableCell sx={{ maxWidth: 80 }}>
                       {config.trade_config.MARGIN.MODE}
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 10 }}>
+                    <TableCell sx={{ maxWidth: 80 }}>
                       {config.trade_config.SL.TYPE}
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 10 }}>
+                    <TableCell sx={{ maxWidth: 80 }}>
                       {config.trade_config.TRAILING.TYPE}
                     </TableCell>
                     <TableCell>
@@ -1078,7 +1078,7 @@ function SignalConfigTab() {
                 setEditForm({ ...editForm, volume: parseFloat(e.target.value) })
               }
               size="small"
-              sx={{ flex: 1, minWidth: 120 }}
+              sx={{ flex: 1, minWidth: 150 }}
             />
             <TextField
               label="Open Type"

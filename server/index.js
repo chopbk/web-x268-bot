@@ -67,7 +67,7 @@ const startServer = async () => {
     // Cấu hình CORS
     let url = process.env.URL;
     let origin = ["http://localhost:3000", "http://127.0.0.1:3000"];
-    if (url) origin.push(`${url}/`);
+    if (url) origin.push(`${url}`);
     app.use(
       cors({
         origin,
