@@ -1,6 +1,8 @@
 const logger = require("../utils/logger");
 const FuturesClient = require("./client");
 const delay = require("../utils/delay");
+const updateTimeManager = require("./updateTimeManager");
+
 class Balance {
   constructor() {
     this.users = [];
@@ -8,7 +10,6 @@ class Balance {
   }
   async init(users) {
     this.users = users;
-
     await this.updateBalance(users);
   }
   update = async () => {
@@ -27,6 +28,15 @@ class Balance {
     }
   };
   updateBalanceOfUser = async (user) => {
+    if (!updateTimeManager.shouldUpdate("balance", user)) {
+      logger.debug(
+        `Skip balance update for ${user}, last update was ${
+          Date.now() - updateTimeManager.getLastUpdateTime("balance", user)
+        }ms ago`
+      );
+      return this.balance[user];
+    }
+
     let userBalance = {
       balance: "",
       availableBalance: 0,

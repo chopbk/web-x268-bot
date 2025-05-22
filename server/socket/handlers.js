@@ -23,7 +23,7 @@ const handleTabChange = async (socket, { tabIndex, tabName }) => {
         socket.interval = setInterval(async () => {
           let positions = await Position.getAllPositions();
           socket.emit("positions_update", positions);
-        }, 1000 * 15);
+        }, 1000 * 5);
       }
       break;
     case 2: // Balance & Profit tab
@@ -49,8 +49,7 @@ const handleRefreshPosition = async (socket) => {
 const handleRefreshDashboard = async (socket) => {
   try {
     await Profit.update();
-    await delay(1000);
-    await Balance.update();
+    await delay(100);
     socket.emit("bot_info", await getBotInfo(socket.activeUsers));
   } catch (error) {
     console.error("Error refreshing dashboard:", error);

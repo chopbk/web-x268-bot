@@ -2,6 +2,8 @@ const MongoDb = require("../database/mongodb");
 const logger = require("../utils/logger");
 const delay = require("../utils/delay");
 const FuturesClient = require("./client");
+const updateTimeManager = require("./updateTimeManager");
+
 class Profit {
   constructor() {
     this.users = [];
@@ -17,11 +19,24 @@ class Profit {
   }
   update = async () => {
     await this.updateTodayProfit(this.users);
-    // await this.updateYesterdayProfit(this.users);
   };
   updateProfit = async (users, startDate, endDate) => {
     let result = {};
+    let today = new Date(new Date().toLocaleDateString());
     for (let user of users) {
+      if (
+        today.toLocaleDateString() ===
+          new Date(startDate).toLocaleDateString() &&
+        !updateTimeManager.shouldUpdate("profit", user)
+      ) {
+        logger.debug(
+          `Skip profit update for ${user}, last update was ${
+            Date.now() - updateTimeManager.getLastUpdateTime("profit", user)
+          }ms ago`
+        );
+        return this.todayProfit;
+      }
+
       let userProfit = await this.updateProfitFromStartToEnd(
         user,
         startDate,

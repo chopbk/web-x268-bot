@@ -546,7 +546,7 @@ function SignalConfigTab() {
             size="small"
           />
           <TextField
-            label="Account Signal"
+            label="Account"
             value={filter.accountSignal}
             onChange={(e) =>
               setFilter({ ...filter, accountSignal: e.target.value })
@@ -569,7 +569,7 @@ function SignalConfigTab() {
           />
 
           <TextField
-            label="Open Type"
+            label="Open"
             value={filter.openType}
             onChange={(e) => setFilter({ ...filter, openType: e.target.value })}
             size="small"
@@ -611,10 +611,10 @@ function SignalConfigTab() {
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 100 }}>
-            <InputLabel>Margin Mode</InputLabel>
+            <InputLabel>Mode</InputLabel>
             <Select
               value={filter.marginMode}
-              label="Margin Mode"
+              label="Mode"
               onChange={(e) =>
                 setFilter({ ...filter, marginMode: e.target.value })
               }
@@ -626,10 +626,10 @@ function SignalConfigTab() {
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 100 }}>
-            <InputLabel>SL Type</InputLabel>
+            <InputLabel>Stoploss</InputLabel>
             <Select
               value={filter.slType}
-              label="SL Type"
+              label="Stoploss"
               onChange={(e) => setFilter({ ...filter, slType: e.target.value })}
             >
               <MenuItem value="">All</MenuItem>
@@ -706,11 +706,7 @@ function SignalConfigTab() {
                   setNewForm({ ...newForm, accountSignal: newValue })
                 }
                 renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    size="small"
-                    placeholder="Account Signal"
-                  />
+                  <TextField {...params} size="small" placeholder="Account" />
                 )}
                 sx={{ flex: 1, minWidth: 120 }}
               />
@@ -761,7 +757,7 @@ function SignalConfigTab() {
                 sx={{ flex: 1, minWidth: 120 }}
               />
               <TextField
-                label="Open Type"
+                label="Open"
                 value={newForm.openType}
                 onChange={(e) =>
                   setNewForm({ ...newForm, openType: e.target.value })
@@ -780,7 +776,7 @@ function SignalConfigTab() {
                   <TextField
                     {...params}
                     size="small"
-                    placeholder="Copy Account Signal"
+                    placeholder="Copy Account"
                   />
                 )}
                 sx={{ flex: 1, minWidth: 120 }}
@@ -834,7 +830,7 @@ function SignalConfigTab() {
                     User
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 10 }}>
+                <TableCell sx={{ maxWidth: 80 }}>
                   <TableSortLabel
                     active={sortConfig.key === "accountSignal"}
                     direction={
@@ -844,10 +840,10 @@ function SignalConfigTab() {
                     }
                     onClick={() => handleSort("accountSignal")}
                   >
-                    Account Signal
+                    Account
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 100 }}>Signal</TableCell>
+                <TableCell sx={{ maxWidth: 120 }}>Signal</TableCell>
                 <TableCell sx={{ maxWidth: 150 }}>Blacklist</TableCell>
                 <TableCell sx={{ maxWidth: 50 }}>
                   <TableSortLabel
@@ -861,8 +857,8 @@ function SignalConfigTab() {
                   </TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ maxWidth: 50 }}>TP</TableCell>
-                <TableCell sx={{ maxWidth: 10 }}>SL</TableCell>
-                <TableCell sx={{ maxWidth: 10 }}>
+                <TableCell sx={{ maxWidth: 20 }}>SL</TableCell>
+                <TableCell sx={{ maxWidth: 20 }}>
                   <TableSortLabel
                     active={sortConfig.key === "profit"}
                     direction={
@@ -873,7 +869,7 @@ function SignalConfigTab() {
                     Profit
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 10 }}>
+                <TableCell sx={{ maxWidth: 20 }}>
                   <TableSortLabel
                     active={sortConfig.key === "loss"}
                     direction={
@@ -887,7 +883,7 @@ function SignalConfigTab() {
                 <TableCell sx={{ maxWidth: 20 }}>On</TableCell>
                 <TableCell sx={{ maxWidth: 20 }}>Long</TableCell>
                 <TableCell sx={{ maxWidth: 20 }}>Short</TableCell>
-                <TableCell sx={{ maxWidth: 50 }}>Open Type</TableCell>
+                <TableCell sx={{ maxWidth: 50 }}>Open</TableCell>
                 <TableCell sx={{ maxWidth: 50 }}>
                   <TableSortLabel
                     active={sortConfig.key === "marginMode"}
@@ -898,7 +894,7 @@ function SignalConfigTab() {
                     }
                     onClick={() => handleSort("marginMode")}
                   >
-                    Margin Mode
+                    Mode
                   </TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ maxWidth: 50 }}>
@@ -909,10 +905,10 @@ function SignalConfigTab() {
                     }
                     onClick={() => handleSort("slType")}
                   >
-                    SL Type
+                    Stoploss
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 50 }}>Trailing Type</TableCell>
+                <TableCell sx={{ maxWidth: 50 }}>Trailing</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -926,15 +922,17 @@ function SignalConfigTab() {
                 return (
                   <TableRow key={config._id}>
                     <TableCell>{config.user}</TableCell>
-                    <TableCell>{config.accountSignal}</TableCell>
                     <TableCell sx={{ maxWidth: 100 }}>
+                      {config.accountSignal}
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 120 }}>
                       <ArrayDisplay items={config.signal} />
                     </TableCell>
                     <TableCell sx={{ maxWidth: 120 }}>
                       <ArrayDisplay items={config.blacklist} />
                     </TableCell>
                     <TableCell sx={{ maxWidth: 50 }}>
-                      {configDetails.volume.toFixed(1)} USDT
+                      {configDetails.volume.toFixed(1)}$
                     </TableCell>
                     <TableCell sx={{ maxWidth: 80 }}>
                       <ArrayDisplay
@@ -943,18 +941,18 @@ function SignalConfigTab() {
                         )}
                       />
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 15 }}>
+                    <TableCell sx={{ maxWidth: 20 }}>
                       {(config.trade_config.SL?.SL_PERCENT * 100).toFixed(1)}%
                     </TableCell>
                     <TableCell sx={{ maxWidth: 15 }}>
                       <Tooltip title={configDetails.profit}>
                         <Typography>
-                          ${configDetails.total.toFixed(1)}
+                          {configDetails.total.toFixed(1)}$
                         </Typography>
                       </Tooltip>
                     </TableCell>
                     <TableCell sx={{ maxWidth: 20 }}>
-                      <Typography>${configDetails.loss.toFixed(1)}</Typography>
+                      <Typography>{configDetails.loss.toFixed(1)}$</Typography>
                     </TableCell>
                     <TableCell sx={{ maxWidth: 15 }}>
                       <Switch checked={config.on} disabled />
@@ -1031,7 +1029,7 @@ function SignalConfigTab() {
               sx={{ flex: 1, minWidth: 120 }}
             />
             <TextField
-              label="Account Signal"
+              label="Account"
               value={editForm.accountSignal}
               onChange={(e) =>
                 setEditForm({ ...editForm, accountSignal: e.target.value })
@@ -1081,7 +1079,7 @@ function SignalConfigTab() {
               sx={{ flex: 1, minWidth: 150 }}
             />
             <TextField
-              label="Open Type"
+              label="Open"
               value={editForm.openType}
               onChange={(e) =>
                 setEditForm({ ...editForm, openType: e.target.value })

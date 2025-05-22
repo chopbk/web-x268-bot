@@ -124,9 +124,23 @@ function DashboardTab({ socket, users, onUsersChange }) {
                 <Card>
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
-                      Total Profit
+                      YesterDay Profit
                     </Typography>
-                    <Typography variant="h6">{botInfo.totalProfit}</Typography>
+                    <Typography variant="h6">
+                      {botInfo.totalProfitYesterday?.toFixed(1)} USDT
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Today Profit
+                    </Typography>
+                    <Typography variant="h6">
+                      {botInfo.totalProfit?.toFixed(1)} USDT
+                    </Typography>
                   </CardContent>
                 </Card>
               </Grid>
@@ -137,7 +151,7 @@ function DashboardTab({ socket, users, onUsersChange }) {
                       Unrealized Profit
                     </Typography>
                     <Typography variant="h6">
-                      {botInfo.unrealizedProfit} USDT
+                      {botInfo.unrealizedProfit?.toFixed(1)} USDT
                     </Typography>
                   </CardContent>
                 </Card>
