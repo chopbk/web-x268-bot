@@ -4,7 +4,7 @@ class UpdateTimeManager {
     this.UPDATE_INTERVAL = 30000; // 1 phút
   }
 
-  shouldUpdate(service, key) {
+  shouldUpdate(service, key, interval = this.UPDATE_INTERVAL) {
     if (!this.lastUpdateTimes[service]) {
       this.lastUpdateTimes[service] = {};
     }
@@ -12,7 +12,7 @@ class UpdateTimeManager {
     const lastUpdate = this.lastUpdateTimes[service][key];
     if (lastUpdate) {
       const timeSinceLastUpdate = Date.now() - lastUpdate;
-      if (timeSinceLastUpdate < this.UPDATE_INTERVAL) {
+      if (timeSinceLastUpdate < interval) {
         return false;
       }
     }

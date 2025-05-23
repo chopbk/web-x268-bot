@@ -142,6 +142,14 @@ class Position {
     return true;
   };
   updatePositionInfoBySymbolAndSide = async (user, symbol, positionSide) => {
+    if (!updateTimeManager.shouldUpdate("position", user, 1000 * 5)) {
+      logger.debug(
+        `Skip position update for ${user}, last update was ${
+          Date.now() - updateTimeManager.getLastUpdateTime("position", user)
+        }ms ago`
+      );
+      return false;
+    }
     const futuresClient = FuturesClient.getFuturesClient(user);
     let position = await futuresGetOpenPositionBySymbolAndSide(
       futuresClient,

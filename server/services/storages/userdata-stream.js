@@ -170,7 +170,7 @@ class UserdataStream {
                   delete this.fee[order.symbol + user];
                   break;
               }
-
+              console.log(data);
               // Cập nhật positions
               await Position.updatePositionInfoBySymbolAndSide(
                 user,
