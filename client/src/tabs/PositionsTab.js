@@ -344,9 +344,30 @@ function PositionsTab({
             {sortedPositions.map((position, index) => (
               <TableRow key={index}>
                 <TableCell>{position.user}</TableCell>
-                <TableCell>{position.symbol}</TableCell>
-                <TableCell>{position.positionSide}</TableCell>
-                <TableCell>{position.leverage}x</TableCell>
+                <TableCell
+                  sx={{
+                    color: position.positionSide === "LONG" ? "green" : "red",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {position.symbol}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    color: position.positionSide === "LONG" ? "green" : "red",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {position.positionSide}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    color: position.positionSide === "LONG" ? "green" : "red",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {position.leverage}x
+                </TableCell>
                 <TableCell>{position.entryPrice}</TableCell>
                 <TableCell>{position.markPrice}</TableCell>
                 <TableCell>{position.liquidationPrice}</TableCell>

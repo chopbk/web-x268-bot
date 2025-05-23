@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
-import { Container, Tabs, Tab, Box, Typography } from "@mui/material";
+import {
+  Container,
+  Tabs,
+  Tab,
+  Box,
+  Typography,
+  Snackbar,
+  Alert,
+} from "@mui/material";
 import DashboardTab from "./tabs/DashboardTab";
 import PositionsTab from "./tabs/PositionsTab";
 import BalanceProfitTab from "./tabs/BalanceProfitTab";
@@ -31,6 +39,7 @@ function App() {
   const [config, setConfig] = useState(null);
   const [error, setError] = useState("");
   const [closePercent, setClosePercent] = useState(100);
+  const [notifications, setNotifications] = useState([]);
 
   // Tab change handler
   const handleTabChange = (event, newValue) => {
@@ -68,6 +77,14 @@ function App() {
     socket.on("error", setError);
     socket.on("users_list", setUsers);
     socket.on("active_users", setActiveUsers);
+    socket.on("position_notifications", (newNotifications) => {
+      // Thêm thời gian hiển thị cho mỗi thông báo
+      const notificationsWithTime = newNotifications.map((notification) => ({
+        ...notification,
+        showTime: Date.now(),
+      }));
+      setNotifications((prev) => [...prev, ...notificationsWithTime]);
+    });
 
     return () => {
       socket.off("positions_update");
@@ -76,7 +93,20 @@ function App() {
       socket.off("error");
       socket.off("users_list");
       socket.off("active_users");
+      socket.off("position_notifications");
     };
+  }, []);
+
+  // Thêm useEffect để tự động xóa thông báo sau 5s
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setNotifications((prev) =>
+        prev.filter((notification) => now - notification.showTime < 20000)
+      );
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   const handleClosePosition = (symbol, side) => {
@@ -105,6 +135,59 @@ function App() {
 
   const handleUsersChange = (newActiveUsers) => {
     setActiveUsers(newActiveUsers);
+  };
+
+  // Xử lý đóng thông báo
+  const handleCloseNotification = (index) => {
+    setNotifications((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Hàm render thông báo
+  const renderNotification = (notification) => {
+    switch (notification.type) {
+      case "ORDER_FILLED":
+        return (
+          <Alert
+            severity={notification.profit >= 0 ? "success" : "error"}
+            onClose={() =>
+              handleCloseNotification(notifications.indexOf(notification))
+            }
+          >
+            ${notification.user} {notification.signal} {notification.orderType}{" "}
+            {notification.side} {notification.symbol} - Profit:{" "}
+            {notification.profit.toFixed(2)}$ - Volume: {notification.volume}$ -
+            Price: {notification.price}
+          </Alert>
+        );
+      case "POSITION_CLOSED":
+        return (
+          <Alert
+            severity={notification.profit >= 0 ? "success" : "error"}
+            onClose={() =>
+              handleCloseNotification(notifications.indexOf(notification))
+            }
+          >
+            CLOSE {notification.signal} {notification.symbol} -{" "}
+            {notification.side} - Profit: {notification.profit.toFixed(2)}$ -
+            Volume: {notification.volume}$ - Price: {notification.price}
+          </Alert>
+        );
+      case "POSITION_OPENED":
+        return (
+          <Alert
+            severity="info"
+            onClose={() =>
+              handleCloseNotification(notifications.indexOf(notification))
+            }
+          >
+            OPEN {notification.signal} {notification.orderType}{" "}
+            {notification.symbol} {notification.side} Entry:{" "}
+            {notification.entryPrice} - Volume: {notification.volume}$
+          </Alert>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -158,6 +241,39 @@ function App() {
               {error}
             </Typography>
           )}
+        </Box>
+
+        {/* Sửa lại phần hiển thị thông báo */}
+        <Box
+          sx={{
+            position: "fixed",
+            top: 20,
+            right: 20,
+            zIndex: 9999,
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            maxWidth: 400,
+          }}
+        >
+          {notifications.map((notification, index) => (
+            <Snackbar
+              key={index}
+              open={true}
+              anchorOrigin={{ vertical: "top", horizontal: "right" }}
+              sx={{
+                position: "relative",
+                transform: "none",
+                top: "auto",
+                right: "auto",
+                bottom: "auto",
+                left: "auto",
+                marginBottom: 1,
+              }}
+            >
+              {renderNotification(notification)}
+            </Snackbar>
+          ))}
         </Box>
       </Container>
     </BalanceProvider>

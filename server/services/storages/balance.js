@@ -18,7 +18,10 @@ class Balance {
   updateBalance = async (users) => {
     try {
       for (let user of users) {
-        this.balance[user] = await this.updateBalanceOfUser(user);
+        let res = await this.updateBalanceOfUser(user);
+        if (res) {
+          await delay(1000);
+        }
       }
       return this.balance;
     } catch (error) {
@@ -44,7 +47,7 @@ class Balance {
     let accountBalances = await FuturesClient.getFuturesClient(
       user
     ).futuresAccountBalance();
-    await delay(1000);
+
     if (accountBalances.code) {
       logger.error(`[getBalance] ${user} error ${accountBalances.msg}`);
       return {};
@@ -56,6 +59,7 @@ class Balance {
         userBalance.unrealizedProfit += parseFloat(b.crossUnPnl);
       }
     });
+    this.balance[user] = userBalance;
     return userBalance;
   };
   getBalance = async (user) => {

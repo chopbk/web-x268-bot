@@ -6,6 +6,79 @@ const MongoDb = require("../database/mongodb");
 const delay = require("../utils/delay");
 const logger = require("../utils/logger");
 const updateTimeManager = require("./updateTimeManager");
+const futuresGetOpenPositionBySymbolAndSide = async (
+  futuresClient,
+  symbol = false,
+  side = false
+) => {
+  try {
+    const positions = await futuresClient.futuresPositionRisk({
+      symbol: symbol,
+    });
+
+    if (!!positions.code) throw new Error(JSON.stringify(positions));
+    let p = false;
+    if (!!side && !!positions)
+      p = positions.find((position) => {
+        if (
+          position.positionSide === side &&
+          parseFloat(position.positionAmt) !== 0
+        )
+          return true;
+      });
+
+    return p;
+  } catch (error) {
+    logger.error(error.message);
+    return false;
+  }
+};
+async function updatePositionPrice(pos, exchange) {
+  let tickSize = SymbolInfos.getTickSizeOfSymbol(pos.symbol, exchange);
+  let token = SymbolInfos.getTokenFromSymbol(pos.symbol, exchange);
+  // const stepSize = SymbolInfos.getStepSizeOfSymbol(pos.symbol, exchange);
+
+  // if (exchange === "okex") {
+  //   var BigNumber = require("bignumber.js");
+  //   pos.positionAmt = new BigNumber(pos.positionAmt * stepSize).toFixed();
+  // }
+  pos.entryPrice = Calculate.roundPrice(pos.entryPrice, tickSize);
+  pos.volume = Calculate.round(
+    Math.abs(pos.positionAmt) * pos.entryPrice,
+    0.01
+  );
+
+  pos.markPrice = await FuturesPrice.getSymbolPrice(token, exchange);
+
+  pos.liquidationPrice = Calculate.roundPrice(pos.liquidationPrice, tickSize);
+  // Tính ROI
+  const sign = pos.positionSide === "SHORT" ? -1 : 1;
+  pos.roi =
+    ((pos.markPrice - pos.entryPrice) * 100 * pos.leverage * sign) /
+    pos.entryPrice;
+  pos.unRealizedProfit =
+    (pos.markPrice - pos.entryPrice) * Math.abs(pos.positionAmt) * sign;
+  return pos;
+}
+async function updatePositionInfo(pos, exchange = "binance", user) {
+  updatePositionPrice(pos, exchange);
+  let monitorPosition = await MongoDb.MonitorPositionModel.find({
+    symbol: pos.symbol,
+    side: pos.positionSide,
+    futuresClientName: user,
+    isLimit: false,
+    closed: false,
+  }).lean();
+  if (monitorPosition.length > 0) {
+    monitorPosition.map((p) => {
+      pos.type = `${p.type}`;
+    });
+  } else {
+    pos.type = `NONE `;
+  }
+  pos.user = user;
+  return pos;
+}
 async function getPositionsInfo(user) {
   try {
     const futuresClient = FuturesClient.getFuturesClient(user);
@@ -19,35 +92,7 @@ async function getPositionsInfo(user) {
     // Cập nhật thông tin cho từng vị thế
     await Promise.all(
       openPositions.map(async (pos) => {
-        let tickSize = SymbolInfos.getTickSizeOfSymbol(pos.symbol, exchange);
-        const stepSize = SymbolInfos.getStepSizeOfSymbol(pos.symbol, exchange);
-
-        if (exchange === "okex") {
-          var BigNumber = require("bignumber.js");
-          pos.positionAmt = new BigNumber(pos.positionAmt * stepSize).toFixed();
-        }
-
-        pos.entryPrice = Calculate.roundPrice(pos.entryPrice, tickSize);
-        pos.volume = Calculate.round(
-          Math.abs(pos.positionAmt) * pos.entryPrice,
-          0.01
-        );
-        updatePosition(pos, exchange);
-        let monitorPosition = await MongoDb.MonitorPositionModel.find({
-          symbol: pos.symbol,
-          side: pos.positionSide,
-          futuresClientName: user,
-          isLimit: false,
-          closed: false,
-        }).lean();
-        if (monitorPosition.length > 0) {
-          monitorPosition.map((p) => {
-            pos.type = `${p.type}`;
-          });
-        } else {
-          pos.type = `NONE `;
-        }
-        pos.user = user;
+        return await updatePositionInfo(pos, exchange, user);
       })
     );
     openPositions.sort((o1, o2) => o2.unRealizedProfit - o1.unRealizedProfit);
@@ -58,21 +103,7 @@ async function getPositionsInfo(user) {
     return [];
   }
 }
-updatePosition = async (pos, exchange) => {
-  let token = SymbolInfos.getTokenFromSymbol(pos.symbol, exchange);
-  let tickSize = SymbolInfos.getTickSizeOfSymbol(pos.symbol, exchange);
-  pos.markPrice = await FuturesPrice.getSymbolPrice(token, exchange);
-  pos.markPrice = Calculate.roundPrice(pos.markPrice, tickSize);
-  pos.liquidationPrice = Calculate.roundPrice(pos.liquidationPrice, tickSize);
 
-  // Tính ROI
-  const sign = pos.positionSide === "SHORT" ? -1 : 1;
-  pos.roi =
-    ((pos.markPrice - pos.entryPrice) * 100 * pos.leverage * sign) /
-    pos.entryPrice;
-  pos.unRealizedProfit =
-    (pos.markPrice - pos.entryPrice) * Math.abs(pos.positionAmt) * sign;
-};
 class Position {
   constructor() {
     this.users = [];
@@ -88,7 +119,10 @@ class Position {
   }
   update = async () => {
     for (let user of this.users) {
-      await this.updatePositionInfoFromExchange(user);
+      let res = await this.updatePositionInfoFromExchange(user);
+      if (res) {
+        await delay(5000);
+      }
     }
   };
   updatePositionInfoFromExchange = async (user) => {
@@ -98,12 +132,45 @@ class Position {
           Date.now() - updateTimeManager.getLastUpdateTime("position", user)
         }ms ago`
       );
+      return false;
     }
 
     const positions = await getPositionsInfo(user);
     this[user] = positions;
-    await delay(5000);
+
     logger.info(`Positions for ${user} fetched`);
+    return true;
+  };
+  updatePositionInfoBySymbolAndSide = async (user, symbol, positionSide) => {
+    const futuresClient = FuturesClient.getFuturesClient(user);
+    let position = await futuresGetOpenPositionBySymbolAndSide(
+      futuresClient,
+      symbol,
+      positionSide
+    );
+    if (position) {
+      position = await updatePositionInfo(
+        position,
+        futuresClient.exchange,
+        user
+      );
+      // tìm positon trong this[user]
+      const positionIndex = this[user].findIndex(
+        (p) => p.symbol === symbol && p.positionSide === positionSide
+      );
+      if (positionIndex !== -1) {
+        this[user][positionIndex] = position;
+      } else {
+        this[user].push(position);
+      }
+    } else {
+      this[user] = this[user].filter(
+        (p) => p.symbol !== symbol || p.positionSide !== positionSide
+      );
+    }
+
+    logger.info(`Positions for ${user} fetched`);
+    return true;
   };
   getPositionsInfo = async (user) => {
     return this[user];
@@ -128,7 +195,7 @@ class Position {
     const exchange = futuresClient.exchange;
     let openPositions = this[user];
     openPositions.map(async (pos) => {
-      updatePosition(pos, exchange);
+      updatePositionPrice(pos, exchange);
     });
   };
   getAllPositions = async () => {

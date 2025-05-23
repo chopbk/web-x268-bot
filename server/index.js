@@ -54,10 +54,11 @@ const startServer = async () => {
     await FuturesClient.init(activeUsers);
     await SymbolInfos.init();
     await FuturesPrice.init();
-    await UserdataStream.init(activeUsers);
+
     await Position.init(activeUsers);
     await Profit.init(activeUsers);
     await Balance.init(activeUsers);
+    await UserdataStream.init(activeUsers);
 
     console.log("Other services initialized successfully");
 
@@ -101,9 +102,10 @@ const startServer = async () => {
       allowEIO3: true,
       transports: ["websocket", "polling"],
     });
-
+    // Gán io vào global để có thể sử dụng ở các file khác
+    global.io = io;
     // Lấy thông tin bot
-    let botInfo = await getBotInfo(activeUsers);
+
     console.log(`Bot info initialized for ${activeUsers}`);
 
     // Socket.IO event handlers
@@ -114,7 +116,7 @@ const startServer = async () => {
       // Gửi danh sách users khi client kết nối
       socket.emit("users_list", activeUsers);
       socket.emit("active_users", socket.activeUsers);
-      socket.emit("bot_info", botInfo);
+      socket.emit("bot_info", await getBotInfo(activeUsers));
 
       // Socket event handlers
       socket.on("tab_changed", (data) => handleTabChange(socket, data));
