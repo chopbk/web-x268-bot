@@ -68,6 +68,7 @@ function DashboardTab({
           todayProfit: 0,
           yesterdayProfit: 0,
           balance: 0,
+          availableBalance: 0,
         };
       }
 
@@ -90,6 +91,7 @@ function DashboardTab({
           todayProfit: 0,
           yesterdayProfit: 0,
           balance: 0,
+          availableBalance: 0,
         };
       }
       if (summary[data.account]) {
@@ -243,7 +245,7 @@ function DashboardTab({
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h5" sx={{ mb: 2 }}>
-              Tổng hợp theo Account
+              Summary by Account
             </Typography>
             <TableContainer>
               <Table>
@@ -252,12 +254,12 @@ function DashboardTab({
                     <TableCell>Account</TableCell>
                     <TableCell align="right">Balance</TableCell>
                     <TableCell align="right">Available Balance</TableCell>
-                    <TableCell align="right">Tổng Volume</TableCell>
-                    <TableCell align="right">Tổng ROI</TableCell>
-                    <TableCell align="right">Tổng PNL</TableCell>
+                    <TableCell align="right">Volume</TableCell>
+                    <TableCell align="right">Current ROI</TableCell>
+                    <TableCell align="right">Current PNL</TableCell>
                     <TableCell align="right">Today Profit</TableCell>
                     <TableCell align="right">Yesterday Profit</TableCell>
-                    <TableCell align="right">Số Position</TableCell>
+                    <TableCell align="right">Num of Position</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
