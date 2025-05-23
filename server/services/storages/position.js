@@ -5,6 +5,7 @@ const Calculate = require("../utils/calculate");
 const MongoDb = require("../database/mongodb");
 const delay = require("../utils/delay");
 const logger = require("../utils/logger");
+const updateTimeManager = require("./updateTimeManager");
 async function getPositionsInfo(user) {
   try {
     const futuresClient = FuturesClient.getFuturesClient(user);
@@ -88,13 +89,20 @@ class Position {
   update = async () => {
     for (let user of this.users) {
       await this.updatePositionInfoFromExchange(user);
-      await delay(5000);
     }
   };
   updatePositionInfoFromExchange = async (user) => {
+    if (!updateTimeManager.shouldUpdate("position", user)) {
+      logger.debug(
+        `Skip position update for ${user}, last update was ${
+          Date.now() - updateTimeManager.getLastUpdateTime("position", user)
+        }ms ago`
+      );
+    }
+
     const positions = await getPositionsInfo(user);
     this[user] = positions;
-
+    await delay(5000);
     logger.info(`Positions for ${user} fetched`);
   };
   getPositionsInfo = async (user) => {

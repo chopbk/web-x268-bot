@@ -1,7 +1,7 @@
 class UpdateTimeManager {
   constructor() {
     this.lastUpdateTimes = {};
-    this.UPDATE_INTERVAL = 120000; // 2 phút
+    this.UPDATE_INTERVAL = 60000; // 1 phút
   }
 
   shouldUpdate(service, key) {
