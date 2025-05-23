@@ -13,6 +13,9 @@ const handleTabChange = async (socket, { tabIndex, tabName }) => {
 
   switch (tabIndex) {
     case 0: // Dashboard tab
+      await delay(100);
+      await Profit.update();
+      await delay(100);
       socket.emit("bot_info", await getBotInfo(socket.activeUsers));
       break;
     case 1: // Positions tab

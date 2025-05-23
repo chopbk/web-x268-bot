@@ -13,11 +13,31 @@ import {
   Button,
   Chip,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
-function DashboardTab({ socket, users, onUsersChange }) {
+// Thêm component SummaryCard
+const SummaryCard = ({ title, value, color = "inherit" }) => (
+  <Card>
+    <CardContent>
+      <Typography color="textSecondary" gutterBottom>
+        {title}
+      </Typography>
+      <Typography variant="h6" color={color}>
+        {value}
+      </Typography>
+    </CardContent>
+  </Card>
+);
+
+function DashboardTab({ socket, users, onUsersChange, positions }) {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [botInfo, setBotInfo] = useState({
@@ -27,6 +47,32 @@ function DashboardTab({ socket, users, onUsersChange }) {
     totalPositions: 0,
     totalProfit: 0,
   });
+
+  // Thêm hàm tính toán tổng hợp
+  const calculateSummary = () => {
+    const summary = {};
+
+    positions?.forEach((position) => {
+      if (!summary[position.user]) {
+        summary[position.user] = {
+          totalVolume: 0,
+          totalRoi: 0,
+          totalPnl: 0,
+          positionCount: 0,
+        };
+      }
+
+      summary[position.user].totalVolume += parseFloat(position.volume) || 0;
+      summary[position.user].totalRoi += parseFloat(position.roi) || 0;
+      summary[position.user].totalPnl +=
+        parseFloat(position.unRealizedProfit) || 0;
+      summary[position.user].positionCount += 1;
+    });
+
+    return summary;
+  };
+
+  const summary = calculateSummary();
 
   useEffect(() => {
     // Lắng nghe sự kiện bot_info từ server
@@ -160,43 +206,52 @@ function DashboardTab({ socket, users, onUsersChange }) {
           </Paper>
         </Grid>
 
-        {/* User Selection */}
-        {/* <Grid item xs={12} md={4}>
+        {/* Account Summary Table */}
+        <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h5" gutterBottom>
-              Active Users
+            <Typography variant="h5" sx={{ mb: 2 }}>
+              Tổng hợp theo Account
             </Typography>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Select Users</InputLabel>
-              <Select
-                multiple
-                value={selectedUsers}
-                onChange={(e) => setSelectedUsers(e.target.value)}
-                renderValue={(selected) => (
-                  <Stack direction="row" spacing={1} flexWrap="wrap">
-                    {selected.map((value) => (
-                      <Chip key={value} label={value} />
-                    ))}
-                  </Stack>
-                )}
-              >
-                {users.map((user) => (
-                  <MenuItem key={user} value={user}>
-                    {user}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Button
-              variant="contained"
-              startIcon={<SaveIcon />}
-              onClick={handleSaveUsers}
-              fullWidth
-            >
-              Save Active Users
-            </Button>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Account</TableCell>
+                    <TableCell align="right">Tổng Volume</TableCell>
+                    <TableCell align="right">Tổng ROI</TableCell>
+                    <TableCell align="right">Tổng PNL</TableCell>
+                    <TableCell align="right">Số Position</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {Object.entries(summary).map(([account, data]) => (
+                    <TableRow key={account}>
+                      <TableCell component="th" scope="row">
+                        {account}
+                      </TableCell>
+                      <TableCell align="right">
+                        {data.totalVolume.toFixed(2)}
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ color: data.totalRoi >= 0 ? "green" : "red" }}
+                      >
+                        {data.totalRoi.toFixed(2)}%
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ color: data.totalPnl >= 0 ? "green" : "red" }}
+                      >
+                        {data.totalPnl.toFixed(2)}
+                      </TableCell>
+                      <TableCell align="right">{data.positionCount}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Paper>
-        </Grid> */}
+        </Grid>
       </Grid>
     </Box>
   );

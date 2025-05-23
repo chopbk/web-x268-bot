@@ -18,6 +18,7 @@ import {
   Checkbox,
   ListItemText,
   OutlinedInput,
+  Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -79,6 +80,26 @@ const FilterSelect = memo(
       </FormControl>
     );
   }
+);
+
+// Thêm component SummaryCard
+const SummaryCard = ({ title, value, color = "inherit" }) => (
+  <Paper
+    sx={{
+      p: 2,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      minWidth: 150,
+    }}
+  >
+    <Typography variant="subtitle2" color="text.secondary">
+      {title}
+    </Typography>
+    <Typography variant="h6" color={color}>
+      {value}
+    </Typography>
+  </Paper>
 );
 
 function PositionsTab({
@@ -200,6 +221,27 @@ function PositionsTab({
     { id: "type", label: "Type" },
   ];
 
+  // Thêm hàm tính toán tổng hợp cho toàn bộ positions
+  const calculateTotalSummary = () => {
+    return sortedPositions.reduce(
+      (acc, position) => {
+        acc.totalVolume += parseFloat(position.volume) || 0;
+        acc.totalRoi += parseFloat(position.roi) || 0;
+        acc.totalPnl += parseFloat(position.unRealizedProfit) || 0;
+        acc.positionCount += 1;
+        return acc;
+      },
+      {
+        totalVolume: 0,
+        totalRoi: 0,
+        totalPnl: 0,
+        positionCount: 0,
+      }
+    );
+  };
+
+  const totalSummary = calculateTotalSummary();
+
   return (
     <Box>
       <Box
@@ -269,6 +311,36 @@ function PositionsTab({
             </TableRow>
           </TableHead>
           <TableBody>
+            {/* Thêm hàng tổng hợp */}
+            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+              <TableCell colSpan={4} sx={{ fontWeight: "bold" }}>
+                Tổng hợp
+              </TableCell>
+              <TableCell colSpan={3}></TableCell>
+              <TableCell
+                sx={{
+                  color: totalSummary.totalRoi >= 0 ? "green" : "red",
+                  fontWeight: "bold",
+                }}
+              >
+                {totalSummary.totalRoi.toFixed(2)}%
+              </TableCell>
+              <TableCell
+                sx={{
+                  color: totalSummary.totalPnl >= 0 ? "green" : "red",
+                  fontWeight: "bold",
+                }}
+              >
+                {totalSummary.totalPnl.toFixed(2)}
+              </TableCell>
+              <TableCell sx={{ fontWeight: "bold" }}>
+                {totalSummary.totalVolume.toFixed(2)}
+              </TableCell>
+              <TableCell sx={{ fontWeight: "bold" }}>
+                {totalSummary.positionCount}
+              </TableCell>
+              <TableCell colSpan={2}></TableCell>
+            </TableRow>
             {sortedPositions.map((position, index) => (
               <TableRow key={index}>
                 <TableCell>{position.user}</TableCell>

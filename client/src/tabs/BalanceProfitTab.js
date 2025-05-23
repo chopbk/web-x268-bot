@@ -18,6 +18,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  TableSortLabel,
 } from "@mui/material";
 import CalculateIcon from "@mui/icons-material/Calculate";
 import { useBalance } from "../context/BalanceContext";
@@ -31,21 +32,52 @@ function BalanceProfitTab({ userBalanceAndProfit, onCalculateProfit, users }) {
   const [error, setError] = useState("");
   const [localData, setLocalData] = useState([]);
   const { setBalance } = useBalance();
+  const [orderBy, setOrderBy] = useState("account");
+  const [order, setOrder] = useState("asc");
 
   // Cập nhật localData khi có dữ liệu mới
   useEffect(() => {
     if (userBalanceAndProfit) {
       setLocalData(userBalanceAndProfit);
       setIsLoading(false);
-      setBalance(userBalanceAndProfit); // Cập nhật balance vào context
+      setBalance(userBalanceAndProfit);
     }
   }, [userBalanceAndProfit]);
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  const sortData = (data) => {
+    return data.sort((a, b) => {
+      let aValue = a[orderBy];
+      let bValue = b[orderBy];
+
+      // Xử lý các trường hợp đặc biệt
+      if (orderBy === "balance") {
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
+      }
+
+      if (orderBy === "account") {
+        return order === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      return order === "asc"
+        ? (aValue || 0) - (bValue || 0)
+        : (bValue || 0) - (aValue || 0);
+    });
+  };
 
   const handleCalculateProfit = async () => {
     try {
       setIsLoading(true);
       setError("");
-      setLocalData([]); // Xóa dữ liệu cũ khi bắt đầu tính toán mới
+      setLocalData([]);
 
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -61,6 +93,10 @@ function BalanceProfitTab({ userBalanceAndProfit, onCalculateProfit, users }) {
       setError("Failed to calculate profit. Please try again.");
       setIsLoading(false);
     }
+  };
+
+  const createSortHandler = (property) => () => {
+    handleRequestSort(property);
   };
 
   return (
@@ -144,24 +180,87 @@ function BalanceProfitTab({ userBalanceAndProfit, onCalculateProfit, users }) {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Account</TableCell>
-                <TableCell align="right">Balance</TableCell>
-                <TableCell align="right">Available </TableCell>
-                <TableCell align="right">Unrealized</TableCell>
-                <TableCell align="right">Profit</TableCell>
-                <TableCell align="right">Fee</TableCell>
-                <TableCell align="right">Ref</TableCell>
-                <TableCell align="right">Funding</TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === "account"}
+                    direction={orderBy === "account" ? order : "asc"}
+                    onClick={createSortHandler("account")}
+                  >
+                    Account
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel
+                    active={orderBy === "balance"}
+                    direction={orderBy === "balance" ? order : "asc"}
+                    onClick={createSortHandler("balance")}
+                  >
+                    Balance
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel
+                    active={orderBy === "availableBalance"}
+                    direction={orderBy === "availableBalance" ? order : "asc"}
+                    onClick={createSortHandler("availableBalance")}
+                  >
+                    Available
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel
+                    active={orderBy === "unrealizedProfit"}
+                    direction={orderBy === "unrealizedProfit" ? order : "asc"}
+                    onClick={createSortHandler("unrealizedProfit")}
+                  >
+                    Unrealized
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel
+                    active={orderBy === "profit"}
+                    direction={orderBy === "profit" ? order : "asc"}
+                    onClick={createSortHandler("profit")}
+                  >
+                    Profit
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel
+                    active={orderBy === "fee"}
+                    direction={orderBy === "fee" ? order : "asc"}
+                    onClick={createSortHandler("fee")}
+                  >
+                    Fee
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel
+                    active={orderBy === "ref"}
+                    direction={orderBy === "ref" ? order : "asc"}
+                    onClick={createSortHandler("ref")}
+                  >
+                    Ref
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="right">
+                  <TableSortLabel
+                    active={orderBy === "funding"}
+                    direction={orderBy === "funding" ? order : "asc"}
+                    onClick={createSortHandler("funding")}
+                  >
+                    Funding
+                  </TableSortLabel>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {localData && localData.length > 0 ? (
                 <>
-                  {localData.map((user) => {
+                  {sortData([...localData]).map((user) => {
                     let totalBalance = 0;
                     let availableBalance = 0;
                     let unrealizedProfit = 0;
-                    console.log(user);
                     if (user) {
                       totalBalance = user.balance || 0;
                       availableBalance = user.availableBalance || 0;
@@ -271,7 +370,7 @@ function BalanceProfitTab({ userBalanceAndProfit, onCalculateProfit, users }) {
                 </>
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={8} align="center">
                     {isLoading ? "Calculating..." : "No data available"}
                   </TableCell>
                 </TableRow>

@@ -349,6 +349,18 @@ function SignalConfigTab() {
         aValue = a.trade_config?.SL?.TYPE || "";
         bValue = b.trade_config?.SL?.TYPE || "";
         break;
+      case "signal":
+        aValue = Array.isArray(a.signal) ? a.signal.join(",") : a.signal || "";
+        bValue = Array.isArray(b.signal) ? b.signal.join(",") : b.signal || "";
+        break;
+      case "sl":
+        aValue = a.trade_config?.SL?.SL_PERCENT || 0;
+        bValue = b.trade_config?.SL?.SL_PERCENT || 0;
+        break;
+      case "risk":
+        aValue = a.trade_config?.OPEN?.RISK || 0;
+        bValue = b.trade_config?.OPEN?.RISK || 0;
+        break;
       default:
         return 0;
     }
@@ -843,7 +855,17 @@ function SignalConfigTab() {
                     Account
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={{ maxWidth: 120 }}>Signal</TableCell>
+                <TableCell sx={{ maxWidth: 120 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === "signal"}
+                    direction={
+                      sortConfig.key === "signal" ? sortConfig.direction : "asc"
+                    }
+                    onClick={() => handleSort("signal")}
+                  >
+                    Signal
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell sx={{ maxWidth: 150 }}>Blacklist</TableCell>
                 <TableCell sx={{ maxWidth: 50 }}>
                   <TableSortLabel
@@ -857,7 +879,17 @@ function SignalConfigTab() {
                   </TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ maxWidth: 50 }}>TP</TableCell>
-                <TableCell sx={{ maxWidth: 20 }}>SL</TableCell>
+                <TableCell sx={{ maxWidth: 20 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === "sl"}
+                    direction={
+                      sortConfig.key === "sl" ? sortConfig.direction : "asc"
+                    }
+                    onClick={() => handleSort("sl")}
+                  >
+                    SL
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell sx={{ maxWidth: 20 }}>
                   <TableSortLabel
                     active={sortConfig.key === "profit"}
@@ -884,6 +916,17 @@ function SignalConfigTab() {
                 <TableCell sx={{ maxWidth: 20 }}>Long</TableCell>
                 <TableCell sx={{ maxWidth: 20 }}>Short</TableCell>
                 <TableCell sx={{ maxWidth: 50 }}>Open</TableCell>
+                <TableCell sx={{ maxWidth: 50 }}>
+                  <TableSortLabel
+                    active={sortConfig.key === "risk"}
+                    direction={
+                      sortConfig.key === "risk" ? sortConfig.direction : "asc"
+                    }
+                    onClick={() => handleSort("risk")}
+                  >
+                    Risk
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell sx={{ maxWidth: 50 }}>
                   <TableSortLabel
                     active={sortConfig.key === "marginMode"}
@@ -965,6 +1008,9 @@ function SignalConfigTab() {
                     </TableCell>
                     <TableCell sx={{ maxWidth: 80 }}>
                       {config.openType}
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 80 }}>
+                      {config.trade_config.OPEN?.RISK || "-"}
                     </TableCell>
                     <TableCell sx={{ maxWidth: 80 }}>
                       {config.trade_config.MARGIN.MODE}

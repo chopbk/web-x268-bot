@@ -43,7 +43,7 @@ function App() {
         "Positions",
         "Balance & Profit",
         "Config",
-        "Signal Config",
+        "Signal",
       ][newValue],
     });
   };
@@ -119,7 +119,7 @@ function App() {
           <Tab label="Positions" />
           <Tab label="Balance & Profit" />
           <Tab label="Config" />
-          <Tab label="Signal Config" />
+          <Tab label="Signal" />
         </Tabs>
         <Box sx={{ p: 2, height: "calc(100vh - 48px)" }}>
           {tab === 0 && (

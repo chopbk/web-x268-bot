@@ -12,7 +12,7 @@ const FuturesClient = require("./services/storages/client");
 const Position = require("./services/storages/position");
 const Profit = require("./services/storages/profit");
 const Balance = require("./services/storages/balance");
-const AccountConfig = require("./services/storages/account-config");
+const UserdataStream = require("./services/storages/userdata-stream");
 const {
   getBotInfo,
   getBalanceAndProfit,
@@ -54,7 +54,7 @@ const startServer = async () => {
     await FuturesClient.init(activeUsers);
     await SymbolInfos.init();
     await FuturesPrice.init();
-
+    await UserdataStream.init(activeUsers);
     await Position.init(activeUsers);
     await Profit.init(activeUsers);
     await Balance.init(activeUsers);
