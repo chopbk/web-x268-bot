@@ -81,6 +81,17 @@ function DashboardTab({
     // Cập nhật thông tin từ balance_profit
 
     userBalanceAndProfit?.forEach((data) => {
+      if (!summary[data.account]) {
+        summary[data.account] = {
+          totalVolume: 0,
+          totalRoi: 0,
+          totalPnl: 0,
+          positionCount: 0,
+          todayProfit: 0,
+          yesterdayProfit: 0,
+          balance: 0,
+        };
+      }
       if (summary[data.account]) {
         summary[data.account].todayProfit = parseFloat(data.profit) || 0;
         summary[data.account].yesterdayProfit =
