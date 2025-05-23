@@ -42,12 +42,14 @@ const getBotInfo = async (users) => {
 const getBalanceAndProfit = async (users) => {
   let result = [];
   let profits = await Profit.getTodayProfit();
+  let yesterdayProfits = await Profit.getYesterdayProfit();
   let balances = await Balance.getAllBalance();
   for (let user of users) {
     result.push({
       account: user,
       ...balances[user],
       ...profits[user],
+      yesterdayProfit: yesterdayProfits[user],
     });
   }
   return result;

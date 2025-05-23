@@ -31,6 +31,7 @@ const {
   handleClosePosition,
   handleCancelOrders,
   handleDisconnect,
+  handleSearchHistory,
 } = require("./socket/handlers");
 
 // Lưu trữ users từ socket
@@ -117,6 +118,12 @@ const startServer = async () => {
       socket.emit("users_list", activeUsers);
       socket.emit("active_users", socket.activeUsers);
       socket.emit("bot_info", await getBotInfo(activeUsers));
+      let positions = await Position.getAllPositions();
+      socket.emit("positions_update", positions);
+      socket.emit(
+        "balance_profit",
+        await getBalanceAndProfit(socket.activeUsers)
+      );
 
       // Socket event handlers
       socket.on("tab_changed", (data) => handleTabChange(socket, data));
@@ -131,6 +138,9 @@ const startServer = async () => {
       );
       socket.on("close_position", (data) => handleClosePosition(socket, data));
       socket.on("cancel_orders", (data) => handleCancelOrders(socket, data));
+      socket.on("search_history", (params) =>
+        handleSearchHistory(socket, params)
+      );
       socket.on("disconnect", () => handleDisconnect(socket));
     });
 

@@ -14,6 +14,7 @@ import PositionsTab from "./tabs/PositionsTab";
 import BalanceProfitTab from "./tabs/BalanceProfitTab";
 import ConfigTab from "./tabs/ConfigTab";
 import SignalConfigTab from "./tabs/SignalConfigTab";
+import HistoryTab from "./tabs/HistoryTab";
 import { BalanceProvider } from "./context/BalanceContext";
 
 // const socket = io("http://167.179.108.96:3001", {
@@ -53,6 +54,7 @@ function App() {
         "Balance & Profit",
         "Config",
         "Signal",
+        "History",
       ][newValue],
     });
   };
@@ -167,9 +169,10 @@ function App() {
               handleCloseNotification(notifications.indexOf(notification))
             }
           >
-            CLOSE {notification.signal} {notification.symbol} -{" "}
-            {notification.side} - Profit: {notification.profit.toFixed(2)}$ -
-            Volume: {notification.volume}$ - Price: {notification.price}
+            ${notification.user} CLOSE {notification.signal}{" "}
+            {notification.symbol} - {notification.side} - Profit:{" "}
+            {notification.profit.toFixed(2)}$ - Volume: {notification.volume}$ -
+            Price: {notification.price}
           </Alert>
         );
       case "POSITION_OPENED":
@@ -180,9 +183,9 @@ function App() {
               handleCloseNotification(notifications.indexOf(notification))
             }
           >
-            OPEN {notification.signal} {notification.orderType}{" "}
-            {notification.symbol} {notification.side} Entry:{" "}
-            {notification.entryPrice} - Volume: {notification.volume}$
+            ${notification.user} OPEN {notification.signal}{" "}
+            {notification.orderType} {notification.symbol} {notification.side}{" "}
+            Entry: {notification.entryPrice} - Volume: {notification.volume}$
           </Alert>
         );
       default:
@@ -203,6 +206,7 @@ function App() {
           <Tab label="Balance & Profit" />
           <Tab label="Config" />
           <Tab label="Signal" />
+          <Tab label="History" />
         </Tabs>
         <Box sx={{ p: 2, height: "calc(100vh - 48px)" }}>
           {tab === 0 && (
@@ -210,6 +214,8 @@ function App() {
               socket={socket}
               users={users}
               onUsersChange={handleUsersChange}
+              positions={positions}
+              userBalanceAndProfit={userBalanceAndProfit}
             />
           )}
           {tab === 1 && (
@@ -236,6 +242,7 @@ function App() {
             />
           )}
           {tab === 4 && <SignalConfigTab />}
+          {tab === 5 && <HistoryTab socket={socket} users={users} />}
           {error && (
             <Typography color="error" sx={{ mt: 2 }}>
               {error}

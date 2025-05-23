@@ -130,6 +130,39 @@ const handleDisconnect = (socket) => {
   //   }
 };
 
+const handleSearchHistory = async (socket, params) => {
+  try {
+    const query = {
+      env: params.selectedUser
+        ? params.selectedUser
+        : { $in: socket.activeUsers },
+      openTime: {
+        $gt: new Date(params.startDate),
+        ...(params.endDate && { $lt: new Date(params.endDate) }),
+      },
+      ...(params.isPaper && { isPaper: true }),
+      ...(params.type && { typeSignal: params.type }),
+      ...(params.symbol && { symbol: params.symbol }),
+      ...(params.side && { side: params.side }),
+      ...(params.status && { status: params.status }),
+      ...(params.isCopy && { isCopy: true }),
+      ...(params.isClosed && { isClosed: true }),
+      ...(params.isOpen && { isClosed: false }),
+    };
+
+    const results = await require("../services/database/mongodb")
+      .getAccountStaticModel()
+      .find(query)
+      .sort({ openTime: -1 })
+      .lean();
+
+    socket.emit("history_results", results);
+  } catch (error) {
+    console.error("Error searching history:", error);
+    socket.emit("error", "Error searching history");
+  }
+};
+
 module.exports = {
   handleTabChange,
   handleRefreshPosition,
@@ -138,4 +171,5 @@ module.exports = {
   handleClosePosition,
   handleCancelOrders,
   handleDisconnect,
+  handleSearchHistory,
 };

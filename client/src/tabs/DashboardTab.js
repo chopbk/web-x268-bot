@@ -37,7 +37,13 @@ const SummaryCard = ({ title, value, color = "inherit" }) => (
   </Card>
 );
 
-function DashboardTab({ socket, users, onUsersChange, positions }) {
+function DashboardTab({
+  socket,
+  users,
+  onUsersChange,
+  positions,
+  userBalanceAndProfit,
+}) {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [botInfo, setBotInfo] = useState({
@@ -59,6 +65,9 @@ function DashboardTab({ socket, users, onUsersChange, positions }) {
           totalRoi: 0,
           totalPnl: 0,
           positionCount: 0,
+          todayProfit: 0,
+          yesterdayProfit: 0,
+          balance: 0,
         };
       }
 
@@ -67,6 +76,19 @@ function DashboardTab({ socket, users, onUsersChange, positions }) {
       summary[position.user].totalPnl +=
         parseFloat(position.unRealizedProfit) || 0;
       summary[position.user].positionCount += 1;
+    });
+
+    // Cập nhật thông tin từ balance_profit
+
+    userBalanceAndProfit?.forEach((data) => {
+      if (summary[data.account]) {
+        summary[data.account].todayProfit = parseFloat(data.profit) || 0;
+        summary[data.account].yesterdayProfit =
+          parseFloat(data.yesterdayProfit?.profit) || 0;
+        summary[data.account].balance = data.balance || 0;
+        summary[data.account].availableBalance =
+          parseFloat(data.availableBalance) || 0;
+      }
     });
 
     return summary;
@@ -217,9 +239,13 @@ function DashboardTab({ socket, users, onUsersChange, positions }) {
                 <TableHead>
                   <TableRow>
                     <TableCell>Account</TableCell>
+                    <TableCell align="right">Balance</TableCell>
+                    <TableCell align="right">Available Balance</TableCell>
                     <TableCell align="right">Tổng Volume</TableCell>
                     <TableCell align="right">Tổng ROI</TableCell>
                     <TableCell align="right">Tổng PNL</TableCell>
+                    <TableCell align="right">Today Profit</TableCell>
+                    <TableCell align="right">Yesterday Profit</TableCell>
                     <TableCell align="right">Số Position</TableCell>
                   </TableRow>
                 </TableHead>
@@ -228,6 +254,10 @@ function DashboardTab({ socket, users, onUsersChange, positions }) {
                     <TableRow key={account}>
                       <TableCell component="th" scope="row">
                         {account}
+                      </TableCell>
+                      <TableCell align="right">{data.balance}</TableCell>
+                      <TableCell align="right">
+                        {data.availableBalance.toFixed(2)}
                       </TableCell>
                       <TableCell align="right">
                         {data.totalVolume.toFixed(2)}
@@ -243,6 +273,20 @@ function DashboardTab({ socket, users, onUsersChange, positions }) {
                         sx={{ color: data.totalPnl >= 0 ? "green" : "red" }}
                       >
                         {data.totalPnl.toFixed(2)}
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ color: data.todayProfit >= 0 ? "green" : "red" }}
+                      >
+                        {data.todayProfit.toFixed(2)}
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{
+                          color: data.yesterdayProfit >= 0 ? "green" : "red",
+                        }}
+                      >
+                        {data.yesterdayProfit.toFixed(2)}
                       </TableCell>
                       <TableCell align="right">{data.positionCount}</TableCell>
                     </TableRow>
