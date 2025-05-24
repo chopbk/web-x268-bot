@@ -268,7 +268,7 @@ function HistoryPage() {
       try {
         let today = new Date().toISOString().split("T")[0];
         const response = await axios.post(`${URL}/api/history`, {
-          start: "2025-05-22", //today
+          start: today, //today
         });
         setSearchResults(response.data);
       } catch (error) {
