@@ -49,14 +49,14 @@ const startServer = async () => {
 
     // Khởi tạo các services khác
     console.log("Initializing other services...");
-    // await FuturesClient.init(activeUsers);
-    // await SymbolInfos.init();
-    // await FuturesPrice.init();
+    await FuturesClient.init(activeUsers);
+    await SymbolInfos.init();
+    await FuturesPrice.init();
 
-    // await Position.init(activeUsers);
-    // await Profit.init(activeUsers);
-    // await Balance.init(activeUsers);
-    // await UserdataStream.init(activeUsers);
+    await Position.init(activeUsers);
+    await Profit.init(activeUsers);
+    await Balance.init(activeUsers);
+    await UserdataStream.init(activeUsers);
 
     console.log("Other services initialized successfully");
 
