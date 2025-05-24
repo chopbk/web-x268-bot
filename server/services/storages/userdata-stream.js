@@ -8,7 +8,7 @@ const logger = require("../utils/logger");
 class UserdataStream {
   constructor() {
     this.streams = {};
-    this.previousPositions = {}; // Lưu trữ positions trước đó để so sánh
+
     this.profit = {};
     this.fee = {};
   }
@@ -23,10 +23,6 @@ class UserdataStream {
           logger.error(`${user} getAvailableBalance ${error.message}`);
           return;
         }
-
-        // Lưu positions ban đầu
-        const initialPositions = await Position.getPositionsInfo(user);
-        this.previousPositions[user] = initialPositions;
 
         futuresClient.websockets.userFutureData(
           (data) => {
@@ -48,12 +44,10 @@ class UserdataStream {
               let order = data.order;
               let message,
                 price,
-                lastFilledPrice,
                 quantity = order.originalQuantity,
                 open = false,
-                orderType = order.orderType,
                 volume = 0,
-                signal = "",
+                signal = "NONE",
                 notifications = [];
               order.positionSide === "LONG"
                 ? order.side == "BUY"
@@ -68,98 +62,61 @@ class UserdataStream {
                 order.orderStatus !== "PARTIALLY_FILLED"
               )
                 return;
-              let monitorPosition = await MongoDb.MonitorPositionModel.find({
-                symbol: order.symbol,
-                side: order.positionSide,
-                futuresClientName: user,
-                isLimit: open,
-                closed: false,
-              }).lean();
-              if (monitorPosition.length > 0) {
-                monitorPosition.map((p) => {
-                  signal = `${p.type}`;
-                });
-              }
 
               if (!this.profit[order.symbol + user])
                 this.profit[order.symbol + user] = 0;
               if (!this.fee[order.symbol + user])
                 this.fee[order.symbol + user] = 0;
+
               switch (order.orderStatus) {
                 case "PARTIALLY_FILLED":
-                  quantity = order.orderLastFilledQuantity;
                   this.profit[order.symbol + user] += parseFloat(
                     order.realizedProfit
                   );
                   this.fee[order.symbol + user] += parseFloat(order.commission);
-                  break;
+                  return;
                 case "FILLED":
-                  price = parseFloat(order.averagePrice);
-                  lastFilledPrice = parseFloat(order.lastFilledPrice);
-                  quantity = parseFloat(order.orderFilledAccumulatedQuantity);
-                  volume = Math.round(
-                    parseFloat(order.orderFilledAccumulatedQuantity) * price
+                  order.price = parseFloat(order.averagePrice);
+
+                  order.quantity = parseFloat(
+                    order.orderFilledAccumulatedQuantity
                   );
+                  order.volume = Math.round(order.quantity * order.price);
                   this.profit[order.symbol + user] += parseFloat(
                     order.realizedProfit
                   );
                   this.fee[order.symbol + user] += parseFloat(order.commission);
 
-                  const previousPosition = this.previousPositions[user].find(
-                    (pos) =>
-                      pos.symbol === order.symbol &&
-                      pos.positionSide === order.positionSide
+                  let type = await Position.updatePositionInfoByUserStreamData(
+                    user,
+                    order
                   );
-                  if (open === true) {
-                    // check xem có symbol và side trong previousPositions không, nếu ko có thì là mở mới
-                    if (!previousPosition) {
-                      notifications.push({
-                        type: "POSITION_OPENED",
-                        orderType: order.originalOrderType,
-                        user: user,
+
+                  if (type) {
+                    let monitorPosition =
+                      await MongoDb.MonitorPositionModel.find({
                         symbol: order.symbol,
                         side: order.positionSide,
-                        entryPrice: price,
-                        volume: volume,
-                        fee: this.fee[order.symbol + user],
-                        time: new Date().toISOString(),
-                        signal: signal,
+                        futuresClientName: user,
+                        isLimit: open,
+                        closed: false,
+                      }).lean();
+                    if (monitorPosition.length > 0) {
+                      monitorPosition.map((p) => {
+                        signal += `${p.type}-`;
                       });
                     }
-                  } else {
-                    // nếu có trong previousPositions không, nếu có thì check xem có bị đóng lệnh hay ko
-                    if (previousPosition) {
-                      // check xem có bị đóng lệnh hay ko
-                      if (
-                        Math.abs(previousPosition.positionAmt - quantity) /
-                          previousPosition.positionAmt <
-                        0.005
-                      ) {
-                        // check xem có bị đóng lệnh hay ko
-                        notifications.push({
-                          type: "POSITION_CLOSED",
-                          user: user,
-                          symbol: order.symbol,
-                          side: order.positionSide,
-                          profit: this.profit[order.symbol + user],
-                          time: new Date().toISOString(),
-                          volume: volume,
-                          fee: this.fee[order.symbol + user],
-                          signal: signal,
-                        });
-                      }
-                    }
                     notifications.push({
-                      type: "ORDER_FILLED",
+                      type: type,
                       orderType: order.originalOrderType,
                       user: user,
                       symbol: order.symbol,
                       side: order.side,
-                      price: price,
-                      quantity: quantity,
+                      price: order.price,
+                      quantity: order.quantity,
                       time: new Date().toISOString(),
                       profit: this.profit[order.symbol + user],
-                      volume: volume,
+                      volume: order.volume,
                       fee: this.fee[order.symbol + user],
                       signal: signal,
                     });
@@ -170,23 +127,13 @@ class UserdataStream {
                   delete this.fee[order.symbol + user];
                   break;
               }
-              console.log(data);
+
               // Cập nhật positions
-              await Position.updatePositionInfoBySymbolAndSide(
-                user,
-                order.symbol,
-                order.positionSide
-              );
 
               // Gửi thông báo đến client
               if (notifications.length > 0 && global.io) {
                 global.io.emit("position_notifications", notifications);
               }
-
-              // Cập nhật positions trước đó
-              this.previousPositions[user] = await Position.getPositionsInfo(
-                user
-              );
             } catch (error) {
               logger.error(
                 `[UserDataStream] Error processing order update: ${error.message}`

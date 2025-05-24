@@ -103,6 +103,19 @@ async function getPositionsInfo(user) {
     return [];
   }
 }
+async function convertOrderToPosition(user, order) {
+  let position = {
+    symbol: order.symbol,
+    positionSide: order.positionSide,
+    positionAmt: order.quantity,
+    entryPrice: order.price,
+    volume: order.volume,
+    liquidationPrice: 0,
+    leverage: 10,
+  };
+  position = await updatePositionInfo(position, "binance", user);
+  return position;
+}
 
 class Position {
   constructor() {
@@ -141,21 +154,40 @@ class Position {
     logger.info(`Positions for ${user} fetched`);
     return true;
   };
-  updatePositionInfoBySymbolAndSide = async (user, symbol, positionSide) => {
+  updatePositionInfoByUserStreamData = async (user, order) => {
+    let type = "ORDER_FILLED";
     if (!updateTimeManager.shouldUpdate("position", user, 1000 * 5)) {
       logger.debug(
         `Skip position update for ${user}, last update was ${
           Date.now() - updateTimeManager.getLastUpdateTime("position", user)
         }ms ago`
       );
-      return false;
+      let position = this[user].find(
+        (p) =>
+          p.symbol === order.symbol && p.positionSide === order.positionSide
+      );
+      if (position) {
+        if (order.open) {
+          position.positionAmt += order.quantity;
+        } else {
+          position.positionAmt -= order.quantity;
+          if (position.positionAmt * order.price < 5) {
+            type = "POSITION_CLOSED";
+          }
+        }
+      } else {
+        type = "POSITION_OPENED";
+        this[user].push(await convertOrderToPosition(user, order));
+      }
+      return type;
     }
     const futuresClient = FuturesClient.getFuturesClient(user);
     let position = await futuresGetOpenPositionBySymbolAndSide(
       futuresClient,
-      symbol,
-      positionSide
+      order.symbol,
+      order.positionSide
     );
+
     if (position) {
       position = await updatePositionInfo(
         position,
@@ -164,21 +196,26 @@ class Position {
       );
       // tìm positon trong this[user]
       const positionIndex = this[user].findIndex(
-        (p) => p.symbol === symbol && p.positionSide === positionSide
+        (p) =>
+          p.symbol === order.symbol && p.positionSide === order.positionSide
       );
       if (positionIndex !== -1) {
+        // mở thêm hoặc đóng bớt
         this[user][positionIndex] = position;
       } else {
+        type = "POSITION_OPENED";
         this[user].push(position);
       }
     } else {
+      type = "POSITION_CLOSED";
       this[user] = this[user].filter(
-        (p) => p.symbol !== symbol || p.positionSide !== positionSide
+        (p) =>
+          p.symbol !== order.symbol || p.positionSide !== order.positionSide
       );
     }
 
     logger.info(`Positions for ${user} fetched`);
-    return true;
+    return type;
   };
   getPositionsInfo = async (user) => {
     return this[user];

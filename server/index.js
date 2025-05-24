@@ -121,6 +121,12 @@ const startServer = async () => {
       socket.emit("bot_info", await getBotInfo(activeUsers));
       let positions = await Position.getAllPositions();
       socket.emit("positions_update", positions);
+      if (positions.length != 0 && !socket.interval) {
+        socket.interval = setInterval(async () => {
+          positions = await Position.getAllPositions();
+          socket.emit("positions_update", positions);
+        }, 1000 * 5);
+      }
       socket.emit(
         "balance_profit",
         await getBalanceAndProfit(socket.activeUsers)

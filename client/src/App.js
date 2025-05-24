@@ -17,7 +17,7 @@ import ConfigTab from "./tabs/ConfigTab";
 import SignalConfigTab from "./tabs/SignalConfigTab";
 import HistoryPage from "./pages/HistoryPage";
 import { BalanceProvider } from "./context/BalanceContext";
-
+import { NOTIFICATION_TYPE, NOTIFICATION_TIMEOUT } from "./utils/const";
 // const socket = io("http://167.179.108.96:3001", {
 //   transports: ["websocket", "polling"],
 //   reconnection: true,
@@ -104,7 +104,9 @@ function App() {
     const timer = setInterval(() => {
       const now = Date.now();
       setNotifications((prev) =>
-        prev.filter((notification) => now - notification.showTime < 20000)
+        prev.filter(
+          (notification) => now - notification.showTime < NOTIFICATION_TIMEOUT
+        )
       );
     }, 1000);
 
@@ -185,11 +187,11 @@ function App() {
           >
             ${notification.user} OPEN {notification.signal}{" "}
             {notification.orderType} {notification.symbol} {notification.side}{" "}
-            Entry: {notification.entryPrice} - Volume: {notification.volume}$
+            Entry: {notification.price} - Volume: {notification.volume}$
           </Alert>
         );
       default:
-        return null;
+        return "";
     }
   };
 

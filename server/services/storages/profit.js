@@ -20,6 +20,11 @@ class Profit {
   update = async () => {
     await this.updateTodayProfit(this.users);
   };
+  scheduleUpdateProfit = async () => {
+    setInterval(async () => {
+      await this.updateTodayProfit(this.users);
+    }, 1000 * 60 * 60);
+  };
   updateProfit = async (users, startDate, endDate) => {
     let result = {};
     let today = new Date(new Date().toLocaleDateString());
