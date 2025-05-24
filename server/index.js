@@ -19,9 +19,6 @@ const {
   updateBalanceAndProfit,
 } = require("./controllers/botController");
 
-// Import routes
-const signalConfigRoutes = require("./routes/signalConfig");
-
 // Import socket handlers
 const {
   handleTabChange,
@@ -52,14 +49,14 @@ const startServer = async () => {
 
     // Khởi tạo các services khác
     console.log("Initializing other services...");
-    await FuturesClient.init(activeUsers);
-    await SymbolInfos.init();
-    await FuturesPrice.init();
+    // await FuturesClient.init(activeUsers);
+    // await SymbolInfos.init();
+    // await FuturesPrice.init();
 
-    await Position.init(activeUsers);
-    await Profit.init(activeUsers);
-    await Balance.init(activeUsers);
-    await UserdataStream.init(activeUsers);
+    // await Position.init(activeUsers);
+    // await Profit.init(activeUsers);
+    // await Balance.init(activeUsers);
+    // await UserdataStream.init(activeUsers);
 
     console.log("Other services initialized successfully");
 
@@ -87,8 +84,12 @@ const startServer = async () => {
       next();
     });
 
+    app.use("/api/users", require("./routes/users"));
     // Use routes
-    app.use("/api/signal-configs", signalConfigRoutes);
+    app.use("/api/signal", require("./routes/signal"));
+
+    // Thêm route history
+    app.use("/api/history", require("./routes/history"));
 
     // Khởi tạo HTTP server
     const server = http.createServer(app);

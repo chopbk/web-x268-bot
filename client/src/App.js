@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import {
   Container,
   Tabs,
@@ -14,7 +15,7 @@ import PositionsTab from "./tabs/PositionsTab";
 import BalanceProfitTab from "./tabs/BalanceProfitTab";
 import ConfigTab from "./tabs/ConfigTab";
 import SignalConfigTab from "./tabs/SignalConfigTab";
-import HistoryTab from "./tabs/HistoryTab";
+import HistoryPage from "./pages/HistoryPage";
 import { BalanceProvider } from "./context/BalanceContext";
 
 // const socket = io("http://167.179.108.96:3001", {
@@ -54,7 +55,6 @@ function App() {
         "Balance & Profit",
         "Config",
         "Signal",
-        "History",
       ][newValue],
     });
   };
@@ -194,96 +194,112 @@ function App() {
   };
 
   return (
-    <BalanceProvider>
-      <Container
-        maxWidth={false}
-        disableGutters
-        sx={{ height: "100vh", width: "100vw", overflow: "auto" }}
-      >
-        <Tabs value={tab} onChange={handleTabChange}>
-          <Tab label="Dashboard" />
-          <Tab label="Positions" />
-          <Tab label="Balance & Profit" />
-          <Tab label="Config" />
-          <Tab label="Signal" />
-          <Tab label="History" />
-        </Tabs>
-        <Box sx={{ p: 2, height: "calc(100vh - 48px)" }}>
-          {tab === 0 && (
-            <DashboardTab
-              socket={socket}
-              users={users}
-              onUsersChange={handleUsersChange}
-              positions={positions}
-              userBalanceAndProfit={userBalanceAndProfit}
-            />
-          )}
-          {tab === 1 && (
-            <PositionsTab
-              positions={positions}
-              closePercent={closePercent}
-              handleClosePosition={handleClosePosition}
-              handleCancelOrders={handleCancelOrders}
-              socket={socket}
-            />
-          )}
-          {tab === 2 && (
-            <BalanceProfitTab
-              userBalanceAndProfit={userBalanceAndProfit}
-              onCalculateProfit={handleCalculateProfit}
-              users={activeUsers}
-            />
-          )}
-          {tab === 3 && (
-            <ConfigTab
-              config={config}
-              onConfigChange={handleConfigChange}
-              onConfigSave={handleConfigSave}
-            />
-          )}
-          {tab === 4 && <SignalConfigTab />}
-          {tab === 5 && <HistoryTab socket={socket} users={users} />}
-          {error && (
-            <Typography color="error" sx={{ mt: 2 }}>
-              {error}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Sửa lại phần hiển thị thông báo */}
-        <Box
-          sx={{
-            position: "fixed",
-            top: 20,
-            right: 20,
-            zIndex: 9999,
-            display: "flex",
-            flexDirection: "column",
-            gap: 1,
-            maxWidth: 400,
-          }}
+    <Router>
+      <BalanceProvider>
+        <Container
+          maxWidth={false}
+          disableGutters
+          sx={{ height: "100vh", width: "100vw", overflow: "auto" }}
         >
-          {notifications.map((notification, index) => (
-            <Snackbar
-              key={index}
-              open={true}
-              anchorOrigin={{ vertical: "top", horizontal: "right" }}
-              sx={{
-                position: "relative",
-                transform: "none",
-                top: "auto",
-                right: "auto",
-                bottom: "auto",
-                left: "auto",
-                marginBottom: 1,
-              }}
-            >
-              {renderNotification(notification)}
-            </Snackbar>
-          ))}
-        </Box>
-      </Container>
-    </BalanceProvider>
+          <Tabs value={tab} onChange={handleTabChange}>
+            <Tab label="Dashboard" component={Link} to="/" />
+            <Tab label="Positions" component={Link} to="/positions" />
+            <Tab label="Balance & Profit" component={Link} to="/balance" />
+            <Tab label="Config" component={Link} to="/config" />
+            <Tab label="Signal" component={Link} to="/signal" />
+            <Tab label="History" component={Link} to="/history" />
+          </Tabs>
+          <Box sx={{ p: 2, height: "calc(100vh - 48px)" }}>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <DashboardTab
+                    socket={socket}
+                    users={users}
+                    onUsersChange={handleUsersChange}
+                    positions={positions}
+                    userBalanceAndProfit={userBalanceAndProfit}
+                  />
+                }
+              />
+              <Route
+                path="/positions"
+                element={
+                  <PositionsTab
+                    positions={positions}
+                    closePercent={closePercent}
+                    handleClosePosition={handleClosePosition}
+                    handleCancelOrders={handleCancelOrders}
+                    socket={socket}
+                  />
+                }
+              />
+              <Route
+                path="/balance"
+                element={
+                  <BalanceProfitTab
+                    userBalanceAndProfit={userBalanceAndProfit}
+                    onCalculateProfit={handleCalculateProfit}
+                    users={activeUsers}
+                  />
+                }
+              />
+              <Route
+                path="/config"
+                element={
+                  <ConfigTab
+                    config={config}
+                    onConfigChange={handleConfigChange}
+                    onConfigSave={handleConfigSave}
+                  />
+                }
+              />
+              <Route path="/signal" element={<SignalConfigTab />} />
+              <Route path="/history" element={<HistoryPage />} />
+            </Routes>
+            {error && (
+              <Typography color="error" sx={{ mt: 2 }}>
+                {error}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Sửa lại phần hiển thị thông báo */}
+          <Box
+            sx={{
+              position: "fixed",
+              top: 20,
+              right: 20,
+              zIndex: 9999,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+              maxWidth: 400,
+            }}
+          >
+            {notifications.map((notification, index) => (
+              <Snackbar
+                key={index}
+                open={true}
+                anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                sx={{
+                  position: "relative",
+                  transform: "none",
+                  top: "auto",
+                  right: "auto",
+                  bottom: "auto",
+                  left: "auto",
+                  marginBottom: 1,
+                }}
+              >
+                {renderNotification(notification)}
+              </Snackbar>
+            ))}
+          </Box>
+        </Container>
+      </BalanceProvider>
+    </Router>
   );
 }
 

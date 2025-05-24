@@ -1,9 +1,5 @@
-const MongoDb = require("../database/mongodb");
+const MongoDb = require("./database/mongodb");
 
-// Log để debug
-console.log("MongoDb:", MongoDb);
-console.log("AccountConfigModel:", MongoDb.AccountConfigModel);
-console.log("UserAccountModel:", MongoDb.UserAccountModel);
 const formatResponse = (configs, user) => {
   return configs.map((config) => {
     return {
@@ -23,26 +19,23 @@ const formatResponse = (configs, user) => {
     };
   });
 };
+const UserAccount = require("./database/user-account");
+const AccountConfig = require("./database/account-config");
 // Service methods
 const AccountConfigService = {
   // Tìm tất cả configs theo danh sách users
   findByUsers: async (users) => {
     try {
       let results = [];
-      const AccountConfig = MongoDb.AccountConfigModel;
-      const UserAccount = MongoDb.UserAccountModel;
-      console.log("Finding configs for users:", users);
-      console.log("UserAccount model:", UserAccount);
+
       await Promise.all(
         users.map(async (user) => {
-          let userAccount = await UserAccount.findOne({
-            username: user.toUpperCase(),
-          });
-          let accountConfigs = await AccountConfig.find({
-            env: { $in: userAccount.accounts },
-          })
-            .sort({ createdAt: -1 })
-            .lean();
+          let userAccount = await UserAccount.findByUsername(
+            user.toUpperCase()
+          );
+          let accountConfigs = await AccountConfig.findByAccounts(
+            userAccount.accounts
+          );
 
           results.push(...formatResponse(accountConfigs, user));
         })

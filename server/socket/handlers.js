@@ -141,7 +141,10 @@ const handleSearchHistory = async (socket, params) => {
         ...(params.endDate && { $lt: new Date(params.endDate) }),
       },
       ...(params.isPaper && { isPaper: true }),
-      ...(params.type && { typeSignal: params.type }),
+      // ...(params.type && { typeSignal: { $in: params.type.split(",") } }),
+      ...(params.signal && {
+        typeSignal: { $in: params.signal.split(",") },
+      }),
       ...(params.symbol && { symbol: params.symbol }),
       ...(params.side && { side: params.side }),
       ...(params.status && { status: params.status }),
