@@ -3,6 +3,7 @@ const logger = require("../utils/logger");
 const delay = require("../utils/delay");
 const FuturesClient = require("./client");
 const updateTimeManager = require("./updateTimeManager");
+const { scheduleJob } = require("../utils/schedule");
 
 class Profit {
   constructor() {
@@ -19,11 +20,16 @@ class Profit {
   }
   update = async () => {
     await this.updateTodayProfit(this.users);
+    await this.updateYesterdayProfit(this.users);
   };
   scheduleUpdateProfit = async () => {
-    setInterval(async () => {
+    scheduleJob("1 */1 * * *", async () => {
       await this.updateTodayProfit(this.users);
-    }, 1000 * 60 * 60);
+    });
+    // 0 giờ sáng thì update yesterday profit
+    scheduleJob("0 0 * * *", async () => {
+      await this.updateYesterdayProfit(this.users);
+    });
   };
   updateProfit = async (users, startDate, endDate) => {
     let result = {};

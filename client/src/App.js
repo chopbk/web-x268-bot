@@ -9,6 +9,7 @@ import {
   Typography,
   Snackbar,
   Alert,
+  Button,
 } from "@mui/material";
 import DashboardTab from "./tabs/DashboardTab";
 import PositionsTab from "./tabs/PositionsTab";
@@ -42,6 +43,8 @@ function App() {
   const [error, setError] = useState("");
   const [closePercent, setClosePercent] = useState(100);
   const [notifications, setNotifications] = useState([]);
+  const [notificationPermission, setNotificationPermission] =
+    useState("default");
 
   // Tab change handler
   const handleTabChange = (event, newValue) => {
@@ -86,6 +89,9 @@ function App() {
         showTime: Date.now(),
       }));
       setNotifications((prev) => [...prev, ...notificationsWithTime]);
+
+      // Gửi thông báo hệ thống cho mỗi thông báo mới
+      newNotifications.forEach(sendSystemNotification);
     });
 
     return () => {
@@ -195,6 +201,71 @@ function App() {
     }
   };
 
+  // Hàm xin quyền hiển thị thông báo
+  const requestNotificationPermission = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+    } catch (error) {
+      console.error("Error requesting notification permission:", error);
+    }
+  };
+
+  // Hàm gửi thông báo hệ thống
+  const sendSystemNotification = (notification) => {
+    if (notificationPermission !== "granted") return;
+
+    let title, body;
+    switch (notification.type) {
+      case "ORDER_FILLED":
+        title = `Order Filled - ${notification.user}`;
+        body = `${notification.signal} ${notification.orderType} ${
+          notification.side
+        } ${notification.symbol}\nProfit: ${notification.profit.toFixed(
+          2
+        )}$\nVolume: ${notification.volume}$\nPrice: ${notification.price}`;
+        break;
+      case "POSITION_CLOSED":
+        title = `Position Closed - ${notification.user}`;
+        body = `CLOSE ${notification.signal} ${notification.symbol} ${
+          notification.side
+        }\nProfit: ${notification.profit.toFixed(2)}$\nVolume: ${
+          notification.volume
+        }$\nPrice: ${notification.price}`;
+        break;
+      case "POSITION_OPENED":
+        title = `Position Opened - ${notification.user}`;
+        body = `OPEN ${notification.signal} ${notification.orderType} ${notification.symbol} ${notification.side}\nEntry: ${notification.price}\nVolume: ${notification.volume}$`;
+        break;
+      default:
+        return;
+    }
+
+    const notificationInstance = new Notification(title, {
+      body: body,
+      icon: "/logo192.png",
+      badge: "/logo192.png",
+      tag: notification.type,
+      renotify: true,
+      requireInteraction: false,
+    });
+
+    setTimeout(() => {
+      notificationInstance.close();
+    }, NOTIFICATION_TIMEOUT);
+  };
+
+  // Kiểm tra và xin quyền thông báo khi component mount
+  useEffect(() => {
+    if ("Notification" in window) {
+      if (Notification.permission === "granted") {
+        setNotificationPermission("granted");
+      } else if (Notification.permission !== "denied") {
+        requestNotificationPermission();
+      }
+    }
+  }, []);
+
   return (
     <Router>
       <BalanceProvider>
@@ -203,6 +274,18 @@ function App() {
           disableGutters
           sx={{ height: "100vh", width: "100vw", overflow: "auto" }}
         >
+          {/* Thêm nút xin quyền thông báo nếu chưa được cấp */}
+          {notificationPermission !== "granted" && (
+            <Box sx={{ position: "fixed", top: 10, right: 10, zIndex: 1000 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={requestNotificationPermission}
+              >
+                Bật thông báo
+              </Button>
+            </Box>
+          )}
           <Tabs value={tab} onChange={handleTabChange}>
             <Tab label="Dashboard" component={Link} to="/" />
             <Tab label="Positions" component={Link} to="/positions" />

@@ -47,7 +47,7 @@ class UserdataStream {
                 quantity = order.originalQuantity,
                 open = false,
                 volume = 0,
-                signal = "NONE",
+                signal = "",
                 notifications = [];
               order.positionSide === "LONG"
                 ? order.side == "BUY"
