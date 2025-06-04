@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const HistoryService = require("../services/history");
+const HistoryService = require("./history.services");
 
 router.post("/", async (req, res) => {
   try {

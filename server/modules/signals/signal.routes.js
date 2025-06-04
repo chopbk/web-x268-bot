@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const AccountConfigService = require("../services/account-config");
+const AccountConfigService = require("../configs/config.services");
 
 // GET all signal configs
 router.get("/", async (req, res) => {

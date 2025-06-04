@@ -1,11 +1,11 @@
-const { getFuturesClient } = require("./client");
-const { getTokenFromSymbol } = require("./symbol-info");
+const FuturesClient = require("../../core/clients");
+const { getTokenFromSymbol } = require("../symbols/symbol.storages");
 class FuturesPrice {
   constructor() {
     this.prices = {};
   }
   init = async () => {
-    this.futuresClient = getFuturesClient("DEFAULT");
+    this.futuresClient = FuturesClient.getFuturesClient("DEFAULT");
     let prices = this.prices;
 
     // Get 24h price change statistics for all symbols
@@ -15,10 +15,10 @@ class FuturesPrice {
       });
     });
     if (process.env.BYBIT) {
-      this.futuresClient2 = getFuturesClient("BYBIT");
+      this.futuresClient2 = FuturesClient.getFuturesClient("BYBIT");
     }
     if (process.env.OKEX) {
-      this.futuresClient3 = getFuturesClient("OKEX");
+      this.futuresClient3 = FuturesClient.getFuturesClient("OKEX");
     }
   };
   getSymbolPrice = async function (symbol, exchange = "binance") {

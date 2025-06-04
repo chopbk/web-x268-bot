@@ -2,39 +2,24 @@ const dotenv = require("dotenv");
 dotenv.config();
 const express = require("express");
 const http = require("http");
-const socketIo = require("socket.io");
 const cors = require("cors");
 const fs = require("fs");
-const delay = require("./services/utils/delay");
-const FuturesPrice = require("./services/storages/prices");
-const SymbolInfos = require("./services/storages/symbol-info");
-const FuturesClient = require("./services/storages/client");
-const Position = require("./services/storages/position");
-const Profit = require("./services/storages/profit");
-const Balance = require("./services/storages/balance");
-const UserdataStream = require("./services/storages/userdata-stream");
-const {
-  getBotInfo,
-  getBalanceAndProfit,
-  updateBalanceAndProfit,
-} = require("./controllers/botController");
+const delay = require("./core/utils/delay");
+const FuturesPrice = require("./modules/prices/price.storages");
+const SymbolInfos = require("./modules/symbols/symbol.storages");
+const FuturesClient = require("./core/clients");
+const PositionServices = require("./modules/positions/position.services");
+const ProfitServices = require("./modules/profits/profit.services");
+const BalanceServices = require("./modules/balances/balance.services");
+const UserdataStream = require("./modules/user-data/user-data.stream");
+const initSocket = require("./core/socket");
 
-// Import socket handlers
-const {
-  handleTabChange,
-  handleRefreshPosition,
-  handleRefreshDashboard,
-  handleCalculateProfit,
-  handleClosePosition,
-  handleCancelOrders,
-  handleDisconnect,
-  handleSearchHistory,
-} = require("./socket/handlers");
+const positionRoutes = require("./modules/positions/position.routes");
+const orderRoutes = require("./modules/orders/order.routes");
+const activeUsersMiddleware = require("./core/middlewares/active-users.middleware");
 
 // Lưu trữ users từ socket
 let activeUsers = process.env.USERS.toUpperCase().split(",") || ["V"];
-
-// Hàm lấy thông tin vị thế
 
 // Hàm khởi tạo server
 const startServer = async () => {
@@ -44,7 +29,7 @@ const startServer = async () => {
 
     // Khởi tạo MongoDB trước
     console.log("Initializing MongoDB...");
-    await require("./services/database/mongodb").init();
+    await require("./core/database/mongodb").init();
     console.log("MongoDB initialized successfully");
 
     // Khởi tạo các services khác
@@ -53,9 +38,9 @@ const startServer = async () => {
     await SymbolInfos.init();
     await FuturesPrice.init();
 
-    await Position.init(activeUsers);
-    await Profit.init(activeUsers);
-    await Balance.init(activeUsers);
+    await PositionServices.init(activeUsers);
+    await ProfitServices.init(activeUsers);
+    await BalanceServices.init(activeUsers);
     await UserdataStream.init(activeUsers);
 
     console.log("Other services initialized successfully");
@@ -75,81 +60,28 @@ const startServer = async () => {
       })
     );
 
-    // Middleware để parse JSONenv
+    // Middleware để parse JSON
     app.use(express.json());
 
     // Middleware để thêm users vào req
-    app.use((req, res, next) => {
-      req.activeUsers = activeUsers;
-      next();
-    });
+    app.use(activeUsersMiddleware);
 
-    app.use("/api/users", require("./routes/users"));
+    app.use("/api/users", require("./modules/users/user.routes"));
     // Use routes
-    app.use("/api/signal", require("./routes/signal"));
+    app.use("/api/signal", require("./modules/signals/signal.routes"));
 
     // Thêm route history
-    app.use("/api/history", require("./routes/history"));
+    app.use("/api/history", require("./modules/histories/history.routes"));
+
+    // Routes
+    app.use("/api/position", positionRoutes);
+    app.use("/api/order", orderRoutes);
 
     // Khởi tạo HTTP server
     const server = http.createServer(app);
 
     // Khởi tạo Socket.IO
-    const io = socketIo(server, {
-      cors: {
-        origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
-        methods: ["GET", "POST"],
-        credentials: true,
-      },
-      allowEIO3: true,
-      transports: ["websocket", "polling"],
-    });
-    // Gán io vào global để có thể sử dụng ở các file khác
-    global.io = io;
-    // Lấy thông tin bot
-
-    console.log(`Bot info initialized for ${activeUsers}`);
-
-    // Socket.IO event handlers
-    io.on("connection", async (socket) => {
-      console.log("Client connected");
-      socket.activeUsers = activeUsers;
-
-      // Gửi danh sách users khi client kết nối
-      socket.emit("users_list", activeUsers);
-      socket.emit("active_users", socket.activeUsers);
-      socket.emit("bot_info", await getBotInfo(activeUsers));
-      let positions = await Position.getAllPositions();
-      socket.emit("positions_update", positions);
-      if (positions.length != 0 && !socket.interval) {
-        socket.interval = setInterval(async () => {
-          positions = await Position.getAllPositions();
-          socket.emit("positions_update", positions);
-        }, 1000 * 5);
-      }
-      socket.emit(
-        "balance_profit",
-        await getBalanceAndProfit(socket.activeUsers)
-      );
-
-      // Socket event handlers
-      socket.on("tab_changed", (data) => handleTabChange(socket, data));
-      socket.on("set_active_users", (users) => {
-        socket.activeUsers = users;
-        activeUsers = users; // Cập nhật activeUsers khi có thay đổi
-      });
-      socket.on("refreshPosition", () => handleRefreshPosition(socket));
-      socket.on("refreshDashboard", () => handleRefreshDashboard(socket));
-      socket.on("calculate_profit", (data) =>
-        handleCalculateProfit(socket, data)
-      );
-      socket.on("close_position", (data) => handleClosePosition(socket, data));
-      socket.on("cancel_orders", (data) => handleCancelOrders(socket, data));
-      socket.on("search_history", (params) =>
-        handleSearchHistory(socket, params)
-      );
-      socket.on("disconnect", () => handleDisconnect(socket));
-    });
+    initSocket(server, activeUsers);
 
     // Khởi động server
     const PORT = process.env.PORT || 3001;

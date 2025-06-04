@@ -1,5 +1,5 @@
-const MongoDb = require("../database/mongodb");
-const logger = require("../utils/logger");
+const MongoDb = require("../../core/database/mongodb");
+const logger = require("../../core/utils/logger");
 const schedule = require("node-schedule");
 const symbolExchange = {
   binance: (token) => token + "USDT",

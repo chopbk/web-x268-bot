@@ -1,4 +1,4 @@
-const MongoDb = require("./database/mongodb");
+const MongoDb = require("../../core/database/mongodb");
 
 const formatResponse = (configs, user) => {
   return configs.map((config) => {
@@ -19,8 +19,8 @@ const formatResponse = (configs, user) => {
     };
   });
 };
-const UserAccount = require("./database/user-account");
-const AccountConfig = require("./database/account-config");
+const UserAccount = require("../../core/database/user-account");
+const AccountConfig = require("../../core/database/account-config");
 // Service methods
 const AccountConfigService = {
   // Tìm tất cả configs theo danh sách users

@@ -1,12 +1,14 @@
-const Position = require("../services/storages/position");
-const Profit = require("../services/storages/profit");
-const Balance = require("../services/storages/balance");
+const Position = require("../../modules/positions/position.services");
+const Profit = require("../../modules/profits/profit.services");
+const Balance = require("../../modules/balances/balance.services");
 const {
   getBotInfo,
   getBalanceAndProfit,
   updateBalanceAndProfit,
-} = require("../controllers/botController");
-const delay = require("../services/utils/delay");
+} = require("../utils/dashboard");
+const delay = require("../utils/delay");
+const FuturesClient = require("../clients");
+const MongoDb = require("../database/mongodb");
 
 const handleTabChange = async (socket, { tabIndex, tabName }) => {
   console.log(`Client switched to tab: ${tabName} (${tabIndex})`);
@@ -48,8 +50,12 @@ const handleTabChange = async (socket, { tabIndex, tabName }) => {
   }
 };
 
-const handleRefreshPosition = async (socket) => {
-  await Position.update();
+const handleRefreshPosition = async (socket, data) => {
+  if (data) {
+    await Position.updateBySymbolAndSide(data.user, data.symbol, data.side);
+  } else {
+    await Position.update();
+  }
   let positions = await Position.getAllPositions();
   socket.emit("positions_update", positions);
 };
@@ -91,14 +97,12 @@ const handleClosePosition = async (
   { accountName, symbol, side, percent }
 ) => {
   try {
-    const handleSignalClient = getHandleSignalClient(accountName);
-    const signalInfo = {
+    const futuresClient = FuturesClient.getFuturesClient(accountName);
+    const result = await futuresClient.futuresMarketClosePosition(
       symbol,
       side,
-      per: percent || 100,
-    };
-
-    const result = await handleSignalClient.closePosition(signalInfo);
+      percent
+    );
     socket.emit("close_position_result", result);
   } catch (error) {
     socket.emit("error", error.message);
@@ -107,7 +111,7 @@ const handleClosePosition = async (
 
 const handleCancelOrders = async (socket, { accountName, symbol }) => {
   try {
-    const futuresClient = getFuturesClient(accountName);
+    const futuresClient = FuturesClient.getFuturesClient(accountName);
     const result = await futuresClient.futuresCancelAllOrdersOfSymbol(symbol);
     socket.emit("cancel_orders_result", result);
   } catch (error) {
@@ -153,8 +157,7 @@ const handleSearchHistory = async (socket, params) => {
       ...(params.isOpen && { isClosed: false }),
     };
 
-    const results = await require("../services/database/mongodb")
-      .getAccountStaticModel()
+    const results = await MongoDb.getAccountStaticModel()
       .find(query)
       .sort({ openTime: -1 })
       .lean();

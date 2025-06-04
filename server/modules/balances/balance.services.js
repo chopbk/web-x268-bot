@@ -1,12 +1,11 @@
-const logger = require("../utils/logger");
-const FuturesClient = require("./client");
-const delay = require("../utils/delay");
-const updateTimeManager = require("./updateTimeManager");
-
+const logger = require("../../core/utils/logger");
+const FuturesClient = require("../../core/clients");
+const delay = require("../../core/utils/delay");
+const updateTimeManager = require("../../core/utils/update-timer");
+const BalanceStorage = require("./balance.storages");
 class Balance {
   constructor() {
     this.users = [];
-    this.balance = {};
   }
   async init(users) {
     this.users = users;
@@ -23,7 +22,7 @@ class Balance {
           await delay(1000);
         }
       }
-      return this.balance;
+      return BalanceStorage.getAllBalance();
     } catch (error) {
       logger.error(`[getBalance] error ${error}`);
       return {};
@@ -36,7 +35,7 @@ class Balance {
           Date.now() - updateTimeManager.getLastUpdateTime("balance", user)
         }ms ago`
       );
-      return this.balance[user];
+      return BalanceStorage.getBalance(user);
     }
 
     let userBalance = {
@@ -59,14 +58,14 @@ class Balance {
         userBalance.unrealizedProfit += parseFloat(b.crossUnPnl);
       }
     });
-    this.balance[user] = userBalance;
+    BalanceStorage.setBalance(user, userBalance);
     return userBalance;
   };
   getBalance = async (user) => {
-    return this.balance[user];
+    return BalanceStorage.getBalance(user);
   };
   getAllBalance = async () => {
-    return this.balance;
+    return BalanceStorage.getAllBalance();
   };
 }
 module.exports = new Balance();

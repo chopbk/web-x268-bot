@@ -1,26 +1,23 @@
-const MongoDb = require("../database/mongodb");
-const logger = require("../utils/logger");
-const delay = require("../utils/delay");
-const FuturesClient = require("./client");
-const updateTimeManager = require("./updateTimeManager");
-const { scheduleJob } = require("../utils/schedule");
-
+const MongoDb = require("../../core/database/mongodb");
+const logger = require("../../core/utils/logger");
+const delay = require("../../core/utils/delay");
+const FuturesClient = require("../../core/clients");
+const updateTimeManager = require("../../core/utils/update-timer");
+const { scheduleJob } = require("../../core/utils/schedule");
+const ProfitStorage = require("./profit.storages");
 class Profit {
   constructor() {
     this.users = [];
-    this.todayProfit = {};
-    this.yesterdayProfit = {};
-    this.profits = {};
   }
   async init(users) {
     this.users = users;
 
-    await this.updateTodayProfit((users = users));
-    await this.updateYesterdayProfit((users = users));
+    await this.updateTodayProfit(users);
+    await this.updateYesterdayProfit(users);
   }
   update = async () => {
     await this.updateTodayProfit(this.users);
-    await this.updateYesterdayProfit(this.users);
+    // await this.updateYesterdayProfit(this.users);
   };
   scheduleUpdateProfit = async () => {
     scheduleJob("1 */1 * * *", async () => {
@@ -45,7 +42,7 @@ class Profit {
             Date.now() - updateTimeManager.getLastUpdateTime("profit", user)
           }ms ago`
         );
-        return this.todayProfit;
+        result[user] = ProfitStorage.getTodayProfit(user);
       }
 
       let userProfit = await this.updateProfitFromStartToEnd(
@@ -193,7 +190,7 @@ class Profit {
     for (let user of users) {
       let profit = await this.updateProfitFromStartToEnd(user, start, end);
       await delay(100);
-      this.todayProfit[user] = profit;
+      ProfitStorage.setTodayProfit(user, profit);
     }
   };
   updateYesterdayProfit = async (users) => {
@@ -203,15 +200,22 @@ class Profit {
     let end = new Date(yesterday.toLocaleDateString());
     for (let user of users) {
       let profit = await this.updateProfitFromStartToEnd(user, start, end);
-
-      this.yesterdayProfit[user] = profit;
+      ProfitStorage.setYesterdayProfit(user, profit);
     }
   };
   getTodayProfit = async () => {
-    return this.todayProfit || {};
+    let result = {};
+    for (let user of this.users) {
+      result[user] = ProfitStorage.getTodayProfit(user);
+    }
+    return result;
   };
-  getYesterdayProfit = async () => {
-    return this.yesterdayProfit || {};
+  getYesterdayProfit = async (users) => {
+    let result = {};
+    for (let user of this.users) {
+      result[user] = ProfitStorage.getYesterdayProfit(user);
+    }
+    return result;
   };
 }
 

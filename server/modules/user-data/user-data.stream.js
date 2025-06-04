@@ -1,9 +1,8 @@
-const WebSocket = require("ws");
-const FuturesClient = require("./client");
-const Position = require("./position");
-const Balance = require("./balance");
-const MongoDb = require("../database/mongodb");
-const logger = require("../utils/logger");
+const FuturesClient = require("../../core/clients");
+const Position = require("../positions/position.services");
+const Balance = require("../balances/balance.services");
+const MongoDb = require("../../core/database/mongodb");
+const logger = require("../../core/utils/logger");
 
 class UserdataStream {
   constructor() {

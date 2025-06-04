@@ -1,7 +1,7 @@
-const MongoDb = require("./database/mongodb");
+const MongoDb = require("../../core/database/mongodb");
 
-const AccountStatic = require("./database/account-static");
-const UserAccount = require("./database/user-account");
+const AccountStatic = require("../../core/database/account-static");
+const UserAccount = require("../../core/database/user-account");
 // Service methods
 
 const AccountConfigService = {

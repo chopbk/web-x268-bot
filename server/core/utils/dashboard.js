@@ -1,11 +1,11 @@
-const Position = require("../services/storages/position");
-const Profit = require("../services/storages/profit");
-const Balance = require("../services/storages/balance");
+const Position = require("../../modules/positions/position.services");
+const Profit = require("../../modules/profits/profit.services");
+const Balance = require("../../modules/balances/balance.services");
 
 const getBotInfo = async (users) => {
   const positions = await Position.getAllPositions();
-  let todayProfits = await Profit.getTodayProfit();
-  let yesterdayProfits = await Profit.getYesterdayProfit();
+  let todayProfits = await Profit.getTodayProfit(users);
+  let yesterdayProfits = await Profit.getYesterdayProfit(users);
   let balances = await Balance.getAllBalance();
 
   let todayProfit = Object.keys(todayProfits).reduce(
