@@ -28,8 +28,8 @@ import { NOTIFICATION_TYPE, NOTIFICATION_TIMEOUT } from "./utils/const";
 const socket = io(window.location.origin.replace("3000", "3001"), {
   transports: ["websocket", "polling"],
   reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 10000,
 });
 
 function App() {

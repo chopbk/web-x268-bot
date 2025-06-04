@@ -66,49 +66,16 @@ router.post(
   validate(positionSchemas.closeAllPositions),
   async (req, res, next) => {
     try {
-      const { user } = req.body;
+      let { users } = req.body;
       const results = {
         success: [],
         failed: [],
       };
 
-      if (!user) {
-        const users = req.activeUsers;
-
-        for (let user of users) {
-          try {
-            const result = await Position.closeAllPositions(user);
-            results.success.push({
-              user,
-              ...result,
-            });
-          } catch (error) {
-            if (error.code === "PARTIAL_SUCCESS") {
-              let success = error.data.success;
-              let failed = error.data.failed;
-              success.forEach((item) => {
-                results.success.push({
-                  user,
-                  ...item,
-                });
-              });
-
-              failed.forEach((item) => {
-                results.failed.push({
-                  user,
-                  ...item,
-                });
-              });
-            } else {
-              results.failed.push({
-                user,
-                error: error.message,
-                code: error.code || "UNKNOWN_ERROR",
-              });
-            }
-          }
-        }
-      } else {
+      if (!users || users.length === 0) {
+        users = req.activeUsers;
+      }
+      for (let user of users) {
         try {
           const result = await Position.closeAllPositions(user);
           results.success.push({
@@ -117,9 +84,20 @@ router.post(
           });
         } catch (error) {
           if (error.code === "PARTIAL_SUCCESS") {
-            results.success.push({
-              user,
-              ...error.data,
+            let success = error.data.success;
+            let failed = error.data.failed;
+            success.forEach((item) => {
+              results.success.push({
+                user,
+                ...item,
+              });
+            });
+
+            failed.forEach((item) => {
+              results.failed.push({
+                user,
+                ...item,
+              });
             });
           } else {
             results.failed.push({
