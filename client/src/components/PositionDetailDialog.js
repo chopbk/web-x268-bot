@@ -117,13 +117,16 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
       );
 
       if (response.data.success) {
-        showSnackbar("Hủy order thành công", "success");
+        showSnackbar(
+          `${position.user}  Hủy order ${order.orderId} ${order.origType} ${position.positionSide}  ${position.symbol}  thành công`,
+          "success"
+        );
         await fetchOrders();
       }
     } catch (error) {
       console.error("Error canceling order:", error);
       showSnackbar(
-        `${position.user} ${position.symbol} ${position.positionSide} Cancel order ${order.orderId} ` +
+        `${position.user} ${position.symbol} ${position.positionSide} Cancel order ${order.orderId} ${order.origType} ` +
           (error.response?.data?.message || error.message),
         "error"
       );
@@ -141,7 +144,6 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
           orderIds: orderIds,
         }
       );
-      console.log(response.data);
 
       if (response.data.code === "PARTIAL_SUCCESS") {
         const { success, failed } = response.data.data;
@@ -150,7 +152,7 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
 
         if (success.length > 0) {
           messages.push(
-            `Hủy thành công ${position.user} ${position.symbol} ${position.positionSide} ${success.length} orders`
+            ` ${position.user} ${position.symbol} ${position.positionSide} Hủy thành công ${success.length} orders`
           );
         }
 
@@ -162,7 +164,10 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
 
         showSnackbar(messages.join("\n"), "warning");
       } else {
-        showSnackbar("Hủy tất cả orders thành công", "success");
+        showSnackbar(
+          `${position.user} Hủy orders ${position.symbol} ${position.positionSide} thành công`,
+          "success"
+        );
       }
 
       await fetchOrders();
@@ -175,7 +180,9 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
         const messages = [];
 
         if (success.length > 0) {
-          messages.push(`Hủy thành công ${success.length} orders`);
+          messages.push(
+            `${position.user} Hủy ${success.length} orders ${position.symbol} ${position.positionSide} thành công`
+          );
         }
 
         failed.forEach((order) => {
