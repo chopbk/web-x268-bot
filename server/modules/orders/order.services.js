@@ -8,6 +8,7 @@ const {
 } = require("../../core/utils/error-handler");
 const SymbolStorage = require("../symbols/symbol.storages");
 const { roundPrice, roundAmount } = require("../../core/utils/calculate");
+const PositionService = require("../positions/position.services");
 
 class OrderService {
   constructor() {
@@ -27,6 +28,7 @@ class OrderService {
     stopPrice
   ) => {
     try {
+      let futuresClient = FuturesClient.getFuturesClient(user);
       let order = null;
       let symbolInfo = SymbolStorage.getSymbolInfo(symbol);
       if (!symbolInfo) {
@@ -41,19 +43,37 @@ class OrderService {
       if (stopPrice) {
         stopPrice = roundPrice(stopPrice, tickSize);
       }
-      quantity = roundAmount(quantity, stepSize);
+      if (!quantity) {
+        const position =
+          await PositionService.futuresGetOpenPositionBySymbolAndSide(
+            futuresClient,
+            symbol,
+            positionSide
+          );
+        if (position) {
+          quantity = position.positionAmt;
+        }
+      }
+      quantity = Math.abs(roundAmount(quantity, stepSize));
+      const params = {
+        type,
+        positionSide,
+      };
+      switch (type) {
+        case "LIMIT":
+        case "MARKET":
+          break;
+        default:
+          params.stopPrice = stopPrice;
+          break;
+      }
 
-      let futuresClient = FuturesClient.getFuturesClient(user);
       order = await futuresClient.futuresOrder(
         side,
         symbol,
         quantity,
-        (price = false),
-        {
-          type,
-          positionSide,
-          stopPrice,
-        }
+        price,
+        params
       );
 
       if (order.code) {

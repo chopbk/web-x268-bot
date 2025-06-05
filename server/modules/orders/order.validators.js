@@ -80,7 +80,7 @@ const orderSchemas = {
         min: 0,
         validate: function (value, body) {
           if (body.type === "LIMIT" || body.type === "MARKET") {
-            return value === 0;
+            return value === "";
           }
           return true;
         },

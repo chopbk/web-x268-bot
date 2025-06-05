@@ -72,16 +72,7 @@ router.post("/", validate(orderSchemas.createOrder), async (req, res, next) => {
       price,
       stopPrice,
     } = req.body;
-    // if (!quantity) {
-    //   const position = await PositionService.getPositionBySymbolAndSide(
-    //     user,
-    //     symbol,
-    //     side
-    //   );
-    //   if (position) {
-    //     quantity = position.positionAmt;
-    //   }
-    // }
+
     const order = await OrderService.createOrder(
       user,
       symbol,

@@ -293,6 +293,28 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
     ) {
       errors.push("Vui lòng nhập giá dừng");
     }
+    const sign = position.positionSide === "LONG" ? 1 : -1;
+    let signString = sign === 1 ? "lớn hơn" : "nhỏ hơn";
+    if (newOrder.orderType === "CLOSE") {
+      if (newOrder.type === "STOP_MARKET" || newOrder.type === "STOP") {
+        signString = sign === 1 ? "nhỏ hơn" : "lớn hơn";
+        if (sign * newOrder.stopPrice > sign * position.markPrice) {
+          errors.push(
+            `Giá dừng phải ${signString} giá hiện tại ${position.markPrice}`
+          );
+        }
+      }
+      if (
+        newOrder.type === "TAKE_PROFIT" ||
+        newOrder.type === "TAKE_PROFIT_MARKET"
+      ) {
+        if (sign * newOrder.stopPrice < sign * position.markPrice) {
+          errors.push(
+            `Giá take profit phải ${signString} giá hiện tại ${position.markPrice}`
+          );
+        }
+      }
+    }
 
     return errors;
   };
@@ -314,8 +336,8 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
         side: calculateSide(),
         ...newOrder,
         quantity: Number(newOrder.quantity),
-        price: newOrder.price ? Number(newOrder.price) : 0,
-        stopPrice: newOrder.stopPrice ? Number(newOrder.stopPrice) : 0,
+        price: newOrder.price ? Number(newOrder.price) : "",
+        stopPrice: newOrder.stopPrice ? Number(newOrder.stopPrice) : "",
       };
 
       const response = await axios.post(

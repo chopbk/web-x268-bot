@@ -30,11 +30,20 @@ const validateObject = (data, schema, location) => {
     const value = data[key];
 
     // Check required
-    if (
-      rules.required &&
-      (value === undefined || value === null || value === "")
-    ) {
-      throw new ValidationError(`Thiếu thông tin ${key} trong ${location}`);
+    if (rules.required) {
+      // Nếu required là function thì gọi function đó
+      const isRequired =
+        typeof rules.required === "function"
+          ? rules.required(data)
+          : rules.required;
+
+      if (
+        isRequired &&
+        (value === undefined || value === null || value === "")
+      ) {
+        throw new ValidationError(`Thiếu thông tin ${key} trong ${location}`);
+      }
+      if (!isRequired) continue;
     }
 
     if (value !== undefined && value !== null) {
@@ -64,6 +73,16 @@ const validateObject = (data, schema, location) => {
         if (rules.max !== undefined && value > rules.max) {
           throw new ValidationError(
             `Giá trị ${key} phải nhỏ hơn hoặc bằng ${rules.max} trong ${location}`
+          );
+        }
+      }
+
+      // Check validate function
+      if (rules.validate && typeof rules.validate === "function") {
+        const isValid = rules.validate(value, data);
+        if (!isValid) {
+          throw new ValidationError(
+            `Giá trị ${key} không hợp lệ trong ${location}`
           );
         }
       }
