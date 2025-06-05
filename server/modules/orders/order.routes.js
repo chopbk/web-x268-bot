@@ -60,6 +60,46 @@ router.get("/", validate(orderSchemas.getAllOrders), async (req, res, next) => {
     next(error);
   }
 });
+router.post("/", validate(orderSchemas.createOrder), async (req, res, next) => {
+  try {
+    const {
+      user,
+      symbol,
+      side,
+      positionSide,
+      type,
+      quantity,
+      price,
+      stopPrice,
+    } = req.body;
+    // if (!quantity) {
+    //   const position = await PositionService.getPositionBySymbolAndSide(
+    //     user,
+    //     symbol,
+    //     side
+    //   );
+    //   if (position) {
+    //     quantity = position.positionAmt;
+    //   }
+    // }
+    const order = await OrderService.createOrder(
+      user,
+      symbol,
+      side,
+      positionSide,
+      type,
+      quantity,
+      price,
+      stopPrice
+    );
+    res.json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // delete all order theo params
 router.post(

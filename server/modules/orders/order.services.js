@@ -6,6 +6,8 @@ const {
   PartialSuccessError,
   handleBinanceError,
 } = require("../../core/utils/error-handler");
+const SymbolStorage = require("../symbols/symbol.storages");
+const { roundPrice, roundAmount } = require("../../core/utils/calculate");
 
 class OrderService {
   constructor() {
@@ -14,6 +16,55 @@ class OrderService {
   async init(users) {
     this.users = users;
   }
+  createOrder = async (
+    user,
+    symbol,
+    side,
+    positionSide,
+    type,
+    quantity,
+    price,
+    stopPrice
+  ) => {
+    try {
+      let order = null;
+      let symbolInfo = SymbolStorage.getSymbolInfo(symbol);
+      if (!symbolInfo) {
+        throw new NotFoundError("Không tìm thấy symbol");
+      }
+
+      let stepSize = symbolInfo.stepSize;
+      let tickSize = symbolInfo.tickSize;
+      if (price) {
+        price = roundPrice(price, tickSize);
+      }
+      if (stopPrice) {
+        stopPrice = roundPrice(stopPrice, tickSize);
+      }
+      quantity = roundAmount(quantity, stepSize);
+
+      let futuresClient = FuturesClient.getFuturesClient(user);
+      order = await futuresClient.futuresOrder(
+        side,
+        symbol,
+        quantity,
+        (price = false),
+        {
+          type,
+          positionSide,
+          stopPrice,
+        }
+      );
+
+      if (order.code) {
+        handleBinanceError(order);
+      }
+      return order;
+    } catch (error) {
+      logger.error(`Error creating order for user ${user}: ${error.message}`);
+      throw error;
+    }
+  };
   getAllOrdersOfUser = async (user) => {
     try {
       if (!user) {

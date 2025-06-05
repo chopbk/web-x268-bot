@@ -334,7 +334,7 @@ class PositionService {
         futuresClient.exchange
       );
       let positionAmt = Calculate.roundAmount(
-        position.positionAmt * (percent / 100),
+        Math.abs(position.positionAmt) * (percent / 100),
         stepSize
       );
       let tickSize = SymbolInfos.getTickSizeOfSymbol(

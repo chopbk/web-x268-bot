@@ -14,27 +14,76 @@ const orderSchemas = {
         type: "string",
         enum: ["BUY", "SELL"],
       },
+      positionSide: {
+        required: true,
+        type: "string",
+        enum: ["LONG", "SHORT"],
+      },
       type: {
         required: true,
         type: "string",
-        enum: ["LIMIT", "MARKET"],
+        enum: [
+          "LIMIT",
+          "STOP_MARKET",
+          "STOP",
+          "MARKET",
+          "TAKE_PROFIT_MARKET",
+          "TAKE_PROFIT",
+        ],
       },
-      quantity: {
+      orderType: {
         required: true,
+        type: "string",
+        enum: ["OPEN", "CLOSE"],
+      },
+      /** quantity: không yêu cầu khi   */
+      quantity: {
+        required: function (body) {
+          return (
+            body.type !== "TAKE_PROFIT_MARKET" && body.type !== "STOP_MARKET"
+          );
+        },
         type: "number",
         min: 0,
       },
       price: {
         required: function (body) {
-          return body.type === "LIMIT";
+          return (
+            body.type !== "MARKET" &&
+            body.type !== "STOP_MARKET" &&
+            body.type !== "TAKE_PROFIT_MARKET"
+          );
         },
         type: "number",
         min: 0,
+        validate: function (value, body) {
+          if (
+            body.type === "MARKET" ||
+            body.type === "STOP_MARKET" ||
+            body.type === "TAKE_PROFIT_MARKET"
+          ) {
+            return value === 0;
+          }
+          return true;
+        },
       },
-      positionSide: {
-        required: true,
-        type: "string",
-        enum: ["LONG", "SHORT"],
+      stopPrice: {
+        required: function (body) {
+          return (
+            body.type === "STOP_MARKET" ||
+            body.type === "STOP" ||
+            body.type === "TAKE_PROFIT" ||
+            body.type === "TAKE_PROFIT_MARKET"
+          );
+        },
+        type: "number",
+        min: 0,
+        validate: function (value, body) {
+          if (body.type === "LIMIT" || body.type === "MARKET") {
+            return value === 0;
+          }
+          return true;
+        },
       },
     },
   },
