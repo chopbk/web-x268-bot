@@ -17,6 +17,7 @@ import BalanceProfitTab from "./tabs/BalanceProfitTab";
 import ConfigTab from "./tabs/ConfigTab";
 import SignalConfigTab from "./tabs/SignalConfigTab";
 import HistoryPage from "./pages/HistoryPage";
+import OrderPage from "./pages/OrderPage";
 import { BalanceProvider } from "./context/BalanceContext";
 import { NOTIFICATION_TYPE, NOTIFICATION_TIMEOUT } from "./utils/const";
 // const socket = io("http://167.179.108.96:3001", {
@@ -293,6 +294,7 @@ function App() {
             <Tab label="Config" component={Link} to="/config" />
             <Tab label="Signal" component={Link} to="/signal" />
             <Tab label="History" component={Link} to="/history" />
+            <Tab label="Orders" component={Link} to="/orders" />
           </Tabs>
           <Box sx={{ p: 2, height: "calc(100vh - 48px)" }}>
             <Routes>
@@ -342,6 +344,7 @@ function App() {
               />
               <Route path="/signal" element={<SignalConfigTab />} />
               <Route path="/history" element={<HistoryPage />} />
+              <Route path="/orders" element={<OrderPage />} />
             </Routes>
             {error && (
               <Typography color="error" sx={{ mt: 2 }}>

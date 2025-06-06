@@ -157,14 +157,19 @@ const orderSchemas = {
       },
     },
   },
+
   getOpenOrders: {
     query: {
-      user: {
-        required: true,
-        type: "string",
-      },
       symbol: {
         required: false,
+        type: "string",
+      },
+      side: {
+        required: false,
+        type: "string",
+      },
+      user: {
+        required: true,
         type: "string",
       },
     },

@@ -55,7 +55,7 @@ class FuturesClient {
       return this.client[user];
     }
 
-    throw new Error(`[getFuturesClient] Futures Client not exist ${user}`);
+    throw new Error(`Futures Client not exist ${user}`);
   };
   addFuturesClient = (user, config) => {
     logger.debug(`[addFuturesClient] env ${user} exchange ${config.exchange}`);

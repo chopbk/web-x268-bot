@@ -26,6 +26,9 @@ import {
 } from "@mui/material";
 import axios from "axios";
 
+import PositionOrderForm from "./PositionOrderForm";
+import { calculateQuantity } from "../utils/orderUtils";
+
 const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
   const [orders, setOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
@@ -36,13 +39,8 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
     message: "",
     severity: "success",
   });
-  const calculateQuantity = (percent) => {
-    if (!position) return "0";
-    const amount = Math.abs(position.positionAmt);
-    return ((amount * percent) / 100).toFixed(3);
-  };
   const [newOrder, setNewOrder] = useState({
-    orderType: "CLOSE",
+    orderType: "OPEN",
     type: "LIMIT",
     quantity: "0",
     price: "",
@@ -60,7 +58,7 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
     if (position) {
       setNewOrder((prev) => ({
         ...prev,
-        quantity: calculateQuantity(100),
+        quantity: calculateQuantity(100, position.positionAmt),
       }));
     }
   }, [position]);
@@ -115,21 +113,15 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
-  const showSnackbar = (message, severity = "success") => {
-    // Đóng snackbar hiện tại nếu đang mở
-    setTimeout(() => {
-      setSnackbar((prev) => ({ ...prev, open: false }));
-    }, 500);
 
-    // Delay 100ms trước khi hiển thị snackbar mới
-    setTimeout(() => {
-      setSnackbar({
-        open: true,
-        message,
-        severity,
-      });
-    }, 500);
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbar({
+      open: true,
+      message,
+      severity,
+    });
   };
+
   const handleCancelOrder = async (order) => {
     try {
       const response = await axios.delete(
@@ -173,7 +165,6 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
 
       if (response.data.code === "PARTIAL_SUCCESS") {
         const { success, failed } = response.data.data;
-
         const messages = [];
 
         if (success.length > 0) {
@@ -202,7 +193,6 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
 
       if (error.response?.data?.code === "PARTIAL_SUCCESS") {
         const { success, failed } = error.response.data.data;
-
         const messages = [];
 
         if (success.length > 0) {
@@ -228,118 +218,8 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
     }
   };
 
-  const calculateSide = () => {
-    if (newOrder.orderType === "OPEN") {
-      return position.positionSide === "LONG" ? "BUY" : "SELL";
-    } else {
-      return position.positionSide === "LONG" ? "SELL" : "BUY";
-    }
-  };
-
-  const handleQuantityChange = (value) => {
-    if (value.includes("%")) {
-      const percent = parseInt(value);
-      setNewOrder((prev) => ({
-        ...prev,
-        quantity: calculateQuantity(percent),
-      }));
-    } else {
-      setNewOrder((prev) => ({
-        ...prev,
-        quantity: value,
-      }));
-    }
-  };
-
-  // Validate order type và các trường liên quan
-  const validateOrder = () => {
-    const errors = [];
-
-    // Validate orderType và type
-    if (
-      newOrder.orderType === "OPEN" &&
-      (newOrder.type === "TAKE_PROFIT" ||
-        newOrder.type === "TAKE_PROFIT_MARKET")
-    ) {
-      errors.push("Không thể tạo TAKE_PROFIT order khi mở vị thế mới");
-    }
-
-    // Validate quantity
-    if (
-      newOrder.type !== "TAKE_PROFIT_MARKET" &&
-      newOrder.type !== "STOP_MARKET" &&
-      (!newOrder.quantity || Number(newOrder.quantity) <= 0)
-    ) {
-      errors.push("Vui lòng nhập số lượng");
-    }
-
-    // Validate price
-    if (
-      newOrder.type !== "MARKET" &&
-      newOrder.type !== "STOP_MARKET" &&
-      newOrder.type !== "TAKE_PROFIT_MARKET" &&
-      (!newOrder.price || Number(newOrder.price) <= 0)
-    ) {
-      errors.push("Vui lòng nhập giá");
-    }
-
-    // Validate stopPrice
-    if (
-      (newOrder.type === "STOP_MARKET" ||
-        newOrder.type === "STOP" ||
-        newOrder.type === "TAKE_PROFIT" ||
-        newOrder.type === "TAKE_PROFIT_MARKET") &&
-      (!newOrder.stopPrice || Number(newOrder.stopPrice) <= 0)
-    ) {
-      errors.push("Vui lòng nhập giá dừng");
-    }
-    const sign = position.positionSide === "LONG" ? 1 : -1;
-    let signString = sign === 1 ? "lớn hơn" : "nhỏ hơn";
-    if (newOrder.orderType === "CLOSE") {
-      if (newOrder.type === "STOP_MARKET" || newOrder.type === "STOP") {
-        signString = sign === 1 ? "nhỏ hơn" : "lớn hơn";
-        if (sign * newOrder.stopPrice > sign * position.markPrice) {
-          errors.push(
-            `Giá dừng phải ${signString} giá hiện tại ${position.markPrice}`
-          );
-        }
-      }
-      if (
-        newOrder.type === "TAKE_PROFIT" ||
-        newOrder.type === "TAKE_PROFIT_MARKET"
-      ) {
-        if (sign * newOrder.stopPrice < sign * position.markPrice) {
-          errors.push(
-            `Giá take profit phải ${signString} giá hiện tại ${position.markPrice}`
-          );
-        }
-      }
-    }
-
-    return errors;
-  };
-
-  const handleCreateOrder = async () => {
+  const handleCreateOrder = async (orderData) => {
     try {
-      // Validate trước khi gửi
-      const errors = validateOrder();
-      if (errors.length > 0) {
-        showSnackbar(errors.join("\n"), "error");
-        return;
-      }
-
-      // Chuyển đổi quantity và price từ string sang number
-      const orderData = {
-        user: position.user,
-        symbol: position.symbol,
-        positionSide: position.positionSide,
-        side: calculateSide(),
-        ...newOrder,
-        quantity: Number(newOrder.quantity),
-        price: newOrder.price ? Number(newOrder.price) : "",
-        stopPrice: newOrder.stopPrice ? Number(newOrder.stopPrice) : "",
-      };
-
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/order`,
         orderData
@@ -347,225 +227,95 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
 
       if (response.data.success) {
         showSnackbar(
-          `${position.user} Tạo order ${newOrder.type} ${calculateSide()} ${
-            position.symbol
-          } thành công`,
+          `${orderData.user} Tạo order ${orderData.type} ${orderData.side} ${orderData.symbol} thành công`,
           "success"
         );
-        // Reset form với quantity mặc định là 100%
+        // Reset form
         setNewOrder({
-          orderType: "CLOSE",
+          orderType: "OPEN",
           type: "LIMIT",
-          quantity: calculateQuantity(100),
+          quantity: "0",
           price: "",
           stopPrice: "",
         });
-        // Refresh orders list
-        await fetchOrders();
+        // Refresh positions list
+        onClose();
       }
     } catch (error) {
       console.error("Error creating order:", error);
       showSnackbar(
-        `${position.user} ${position.symbol} ${position.positionSide} Create order: ` +
-          (error.response?.data?.message || error.message),
+        `Create order: ` + (error.response?.data?.message || error.message),
         "error"
       );
     }
-  };
-
-  // Cập nhật lại các options của type dựa trên orderType
-  const getOrderTypeOptions = () => {
-    const baseTypes = [
-      { value: "LIMIT", label: "LIMIT" },
-      { value: "MARKET", label: "MARKET" },
-      { value: "STOP", label: "STOP" },
-      { value: "STOP_MARKET", label: "STOP_MARKET" },
-    ];
-
-    if (newOrder.orderType === "CLOSE") {
-      return [
-        ...baseTypes,
-        { value: "TAKE_PROFIT", label: "TAKE_PROFIT" },
-        { value: "TAKE_PROFIT_MARKET", label: "TAKE_PROFIT_MARKET" },
-      ];
-    }
-
-    return baseTypes;
-  };
-
-  const handleInputChange = (field) => (event) => {
-    setNewOrder((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
   };
 
   if (!position) return null;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Chi tiết vị thế - {position.symbol}</DialogTitle>
+      <DialogTitle>Position Details</DialogTitle>
       <DialogContent>
         <Grid container spacing={2}>
           <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom>
-              Thông tin vị thế
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={4}>
-                <Typography variant="subtitle2">Account:</Typography>
-                <Typography>{position.user}</Typography>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Position Information
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={4}>
+                  <Typography variant="subtitle2">User</Typography>
+                  <Typography>{position?.user}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="subtitle2">Symbol</Typography>
+                  <Typography>{position?.symbol}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="subtitle2">Position Side</Typography>
+                  <Typography>{position?.positionSide}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="subtitle2">Entry Price</Typography>
+                  <Typography>{position?.entryPrice}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="subtitle2">Mark Price</Typography>
+                  <Typography>{position?.markPrice}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="subtitle2">Position Amount</Typography>
+                  <Typography>{position?.positionAmt}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="subtitle2">Unrealized PnL</Typography>
+                  <Typography>{position?.unRealizedProfit}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="subtitle2">Leverage</Typography>
+                  <Typography>{position?.leverage}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="subtitle2">Liquidation Price</Typography>
+                  <Typography>{position?.liquidationPrice}</Typography>
+                </Grid>
               </Grid>
-              <Grid item xs={4}>
-                <Typography variant="subtitle2">Position Side:</Typography>
-                <Typography
-                  color={position.positionSide === "LONG" ? "green" : "red"}
-                >
-                  {position.positionSide}
-                </Typography>
-              </Grid>
-              <Grid item xs={4}>
-                <Typography variant="subtitle2">Leverage:</Typography>
-                <Typography>{position.leverage}x</Typography>
-              </Grid>
-              <Grid item xs={4}>
-                <Typography variant="subtitle2">Entry Price:</Typography>
-                <Typography>{position.entryPrice}</Typography>
-              </Grid>
-              <Grid item xs={4}>
-                <Typography variant="subtitle2">Mark Price:</Typography>
-                <Typography>{position.markPrice}</Typography>
-              </Grid>
-              <Grid item xs={4}>
-                <Typography variant="subtitle2">Liquidation Price:</Typography>
-                <Typography>{position.liquidationPrice}</Typography>
-              </Grid>
-              <Grid item xs={4}>
-                <Typography variant="subtitle2">ROI:</Typography>
-                <Typography color={position.roi >= 0 ? "green" : "red"}>
-                  {position.roi.toFixed(2)}%
-                </Typography>
-              </Grid>
-              <Grid item xs={4}>
-                <Typography variant="subtitle2">PNL:</Typography>
-                <Typography
-                  color={position.unRealizedProfit >= 0 ? "green" : "red"}
-                >
-                  {position.unRealizedProfit.toFixed(2)}
-                </Typography>
-              </Grid>
-              <Grid item xs={4}>
-                <Typography variant="subtitle2">Volume:</Typography>
-                <Typography>{position.volume}</Typography>
-              </Grid>
-            </Grid>
+            </Paper>
           </Grid>
 
-          <Grid item xs={14}>
-            <Typography variant="h6" gutterBottom>
-              Tạo Order Mới
-            </Typography>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Order</InputLabel>
-                  <Select
-                    value={newOrder.orderType}
-                    onChange={handleInputChange("orderType")}
-                    label="Order"
-                  >
-                    <MenuItem value="OPEN">Open</MenuItem>
-                    <MenuItem value="CLOSE">Close</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Type</InputLabel>
-                  <Select
-                    value={newOrder.type}
-                    onChange={handleInputChange("type")}
-                    label="Type"
-                  >
-                    {getOrderTypeOptions().map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Quantity</InputLabel>
-                  <Select
-                    value={newOrder.quantity}
-                    onChange={(e) => handleQuantityChange(e.target.value)}
-                    label="Quantity"
-                  >
-                    <MenuItem value={calculateQuantity(100)}>100%</MenuItem>
-                    <MenuItem value={calculateQuantity(75)}>75%</MenuItem>
-                    <MenuItem value={calculateQuantity(50)}>50%</MenuItem>
-                    <MenuItem value={calculateQuantity(25)}>25%</MenuItem>
-                    <MenuItem value={calculateQuantity(10)}>10%</MenuItem>
-                    <MenuItem value="">
-                      <TextField
-                        size="small"
-                        type="number"
-                        placeholder="Custom"
-                        value={newOrder.quantity}
-                        onChange={(e) => handleQuantityChange(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                    </MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={2}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Price"
-                  type="number"
-                  value={newOrder.price}
-                  onChange={handleInputChange("price")}
-                  disabled={
-                    newOrder.type === "MARKET" ||
-                    newOrder.type === "STOP_MARKET" ||
-                    newOrder.type === "TAKE_PROFIT_MARKET"
-                  }
-                />
-              </Grid>
-              <Grid item xs={2}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Stop Price"
-                  type="number"
-                  value={newOrder.stopPrice}
-                  onChange={handleInputChange("stopPrice")}
-                  disabled={
-                    ![
-                      "STOP",
-                      "STOP_MARKET",
-                      "TAKE_PROFIT",
-                      "TAKE_PROFIT_MARKET",
-                    ].includes(newOrder.type)
-                  }
-                />
-              </Grid>
-              <Grid item xs={1}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleCreateOrder}
-                  fullWidth
-                >
-                  Create
-                </Button>
-              </Grid>
-            </Grid>
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Create New Order
+              </Typography>
+              <PositionOrderForm
+                position={position}
+                newOrder={newOrder}
+                setNewOrder={setNewOrder}
+                handleCreateOrder={handleCreateOrder}
+                showSnackbar={showSnackbar}
+              />
+            </Paper>
           </Grid>
 
           <Grid item xs={12}>
@@ -698,7 +448,7 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
         </Alert>
       </Snackbar>
       <DialogActions>
-        <Button onClick={onClose}>Đóng</Button>
+        <Button onClick={onClose}>Close</Button>
       </DialogActions>
     </Dialog>
   );

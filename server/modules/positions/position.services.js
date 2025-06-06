@@ -267,9 +267,9 @@ class PositionService {
     setInterval(async () => {
       for (let user of this.users) {
         await this.updatePositionInfoFromExchange(user);
-        await delay(10000);
+        await delay(20000);
       }
-    }, 1000 * 60 * 10);
+    }, 1000 * 60 * 15);
   };
 
   scheduleUpdatePrice = async () => {
@@ -277,7 +277,7 @@ class PositionService {
       this.users.map(async (user) => {
         await this.updatePrice(user);
       });
-    }, 1000);
+    }, 2000);
   };
 
   async updatePrice(user) {

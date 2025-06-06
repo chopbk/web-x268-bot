@@ -43,7 +43,7 @@ const positionSchemas = {
   },
   closeAllPositions: {
     body: {
-      user: {
+      users: {
         required: false,
         type: "string",
       },
