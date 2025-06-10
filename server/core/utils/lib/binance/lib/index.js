@@ -5027,8 +5027,10 @@ let api = function Binance(options = {}) {
       });
     },
 
-    futuresCancelMultipleOrders: async (symbol, orderIdList = []) => {
-      let params = { orderIdList: JSON.stringify(orderIdList), symbol: symbol };
+    futuresCancelMultipleOrders: async (symbol, orderIds = []) => {
+      if (orderIds.length == 0) return;
+      let orderIdList = `[${orderIds.map((orderId) => orderId).join(",")}]`;
+      let params = { orderIdList: orderIdList, symbol: symbol };
       return promiseRequest("v1/batchOrders", params, {
         base: fapi,
         type: "SIGNED",

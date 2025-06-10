@@ -26,15 +26,13 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import OrderForm from "../components/OrderForm";
+import { calculateOrderVolume } from "../utils/orderUtils";
+import { useSnackbar } from "../utils/snackbarUtils";
 
 const OrderPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const { snackbar, handleCloseSnackbar, showSnackbar } = useSnackbar();
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -95,18 +93,6 @@ const OrderPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
-  const showSnackbar = (message, severity = "success") => {
-    setSnackbar({
-      open: true,
-      message,
-      severity,
-    });
   };
 
   const handleFilterChange = (field) => (event) => {
@@ -227,12 +213,6 @@ const OrderPage = () => {
     );
   });
 
-  // Tính toán volume cho order
-  const calculateOrderVolume = (order) => {
-    const price = parseFloat(order.price) || parseFloat(order.stopPrice);
-    return (parseFloat(order.origQty) * parseFloat(price)).toFixed(2);
-  };
-
   // Xử lý thay đổi volume trong form tạo order mới
   const handleVolumeChange = (e) => {
     const volume = e.target.value;
@@ -246,6 +226,7 @@ const OrderPage = () => {
       }));
     }
   };
+
   const handleQuantityChange = (e) => {
     const value = e.target.value;
     let price = newOrder.price || newOrder.stopPrice;
@@ -255,6 +236,7 @@ const OrderPage = () => {
       volume: (value * price).toFixed(2),
     }));
   };
+
   // Hàm xử lý sắp xếp
   const handleSort = (property) => {
     const isAsc = orderBy === property && order === "asc";

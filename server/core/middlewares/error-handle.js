@@ -44,7 +44,7 @@ const errorHandler = (err, req, res, next) => {
   return res.status(500).json({
     success: false,
     code: "INTERNAL_SERVER_ERROR",
-    message: "Lỗi server nội bộ",
+    message: err.message || "Lỗi server nội bộ",
   });
 };
 module.exports = errorHandler;

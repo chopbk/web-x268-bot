@@ -135,3 +135,11 @@ export const formatOrderData = (orderData) => {
 
   return formattedData;
 };
+
+export const calculateOrderVolume = (order) => {
+  const price = parseFloat(order.price) || parseFloat(order.stopPrice);
+  const quantity = order.origQty
+    ? parseFloat(order.origQty)
+    : parseFloat(order.positionAmt);
+  return Math.floor(quantity * price);
+};

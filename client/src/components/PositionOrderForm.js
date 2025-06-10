@@ -33,8 +33,9 @@ const PositionOrderForm = ({
   const handleVolumeChange = (e) => {
     const volume = e.target.value;
     const price = newOrder.price || newOrder.stopPrice;
+    console.log(volume);
     if (volume && price) {
-      const quantity = (volume / price).toFixed(4);
+      const quantity = volume / price;
       setNewOrder((prev) => ({
         ...prev,
         volume,
@@ -42,38 +43,50 @@ const PositionOrderForm = ({
       }));
     }
   };
-  const handlePriceChange = (e) => {
-    const price = e.target.value;
-    setNewOrder((prev) => ({
-      ...prev,
-      price,
-    }));
-    if (newOrder.quantity) {
-      const quantity = newOrder.quantity;
-      const volume = (quantity * price).toFixed(2);
-      setNewOrder((prev) => ({
-        ...prev,
+  const handlePriceChange = (field) => (e) => {
+    const newPrice = e.target.value;
 
-        volume,
-        quantity,
-      }));
-      return;
-    }
-    if (newOrder.volume) {
-      const volume = newOrder.volume;
-      const quantity = (volume / price).toFixed(4);
-      setNewOrder((prev) => ({
+    setNewOrder((prev) => {
+      const updatedOrder = {
         ...prev,
+        [field]: newPrice,
+      };
 
-        volume,
-        quantity,
-      }));
-      return;
-    }
+      // Lấy giá trị price mới nhất
+      const price =
+        field === "price"
+          ? newPrice
+          : field === "stopPrice"
+          ? newPrice
+          : prev.price;
+
+      // Nếu có quantity thì tính volume
+      if (updatedOrder.quantity) {
+        const quantity = Number(updatedOrder.quantity);
+        const volume = Math.floor(quantity * price);
+        return {
+          ...updatedOrder,
+          volume,
+        };
+      }
+
+      // Nếu có volume thì tính quantity
+      if (updatedOrder.volume) {
+        const volume = Number(updatedOrder.volume);
+        const quantity = volume / price;
+        return {
+          ...updatedOrder,
+          quantity,
+        };
+      }
+
+      return updatedOrder;
+    });
   };
+
   const handleQuantityChange = (value) => {
     const price = newOrder.price || newOrder.stopPrice;
-    if (value.includes("%")) {
+    if (value.toString().includes("%")) {
       const percent = parseInt(value);
       const quantity = calculateQuantity(percent, position?.positionAmt);
       setNewOrder((prev) => ({
@@ -101,7 +114,14 @@ const PositionOrderForm = ({
 
     const orderData = formatOrderData({
       ...newOrder,
-      side: calculateSide(newOrder.orderType, newOrder.positionSide),
+      user: position.user,
+      symbol: position.symbol,
+      positionSide: position.positionSide,
+      side: calculateSide(newOrder.orderType, position.positionSide),
+
+      quantity: Number(newOrder.quantity),
+      price: newOrder.price ? Number(newOrder.price) : "",
+      stopPrice: newOrder.stopPrice ? Number(newOrder.stopPrice) : "",
     });
 
     handleCreateOrder(orderData);
@@ -146,7 +166,7 @@ const PositionOrderForm = ({
             label="Price"
             type="number"
             value={newOrder.price}
-            onChange={handlePriceChange}
+            onChange={handlePriceChange("price")}
             disabled={
               newOrder.type === "MARKET" ||
               newOrder.type === "STOP_MARKET" ||
@@ -161,7 +181,7 @@ const PositionOrderForm = ({
             label="Stop Price"
             type="number"
             value={newOrder.stopPrice}
-            onChange={handleInputChange("stopPrice")}
+            onChange={handlePriceChange("stopPrice")}
             disabled={
               ![
                 "STOP",

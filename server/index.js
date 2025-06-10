@@ -3,8 +3,7 @@ dotenv.config();
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
-const fs = require("fs");
-const delay = require("./core/utils/delay");
+
 const FuturesPrice = require("./modules/prices/price.storages");
 const SymbolInfos = require("./modules/symbols/symbol.storages");
 const FuturesClient = require("./core/clients");
@@ -17,7 +16,8 @@ const initSocket = require("./core/socket");
 const positionRoutes = require("./modules/positions/position.routes");
 const orderRoutes = require("./modules/orders/order.routes");
 const activeUsersMiddleware = require("./core/middlewares/active-users.middleware");
-
+const loggerMiddleware = require("./core/middlewares/logger.middleware");
+const logger = require("./core/utils/logger");
 // Lưu trữ users từ socket
 let activeUsers = process.env.USERS.toUpperCase().split(",") || ["V"];
 
@@ -28,12 +28,12 @@ const startServer = async () => {
     if (!nodeEnv) throw new Error("specific NODE_ENV");
 
     // Khởi tạo MongoDB trước
-    console.log("Initializing MongoDB...");
+    logger.info("Initializing MongoDB...");
     await require("./core/database/mongodb").init();
-    console.log("MongoDB initialized successfully");
+    logger.info("MongoDB initialized successfully");
 
     // Khởi tạo các services khác
-    console.log("Initializing other services...");
+    logger.info("Initializing other services...");
     await FuturesClient.init(activeUsers);
     await SymbolInfos.init();
     await FuturesPrice.init();
@@ -43,7 +43,7 @@ const startServer = async () => {
     await BalanceServices.init(activeUsers);
     await UserdataStream.init(activeUsers);
 
-    console.log("Other services initialized successfully");
+    logger.info("Other services initialized successfully");
 
     // Khởi tạo Express app
     const app = express();
@@ -62,6 +62,9 @@ const startServer = async () => {
 
     // Middleware để parse JSON
     app.use(express.json());
+
+    // Middleware để log request
+    app.use(loggerMiddleware);
 
     // Middleware để thêm users vào req
     app.use(activeUsersMiddleware);
@@ -86,7 +89,7 @@ const startServer = async () => {
     // Khởi động server
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on port ${PORT}`);
+      logger.info(`Server running on port ${PORT}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

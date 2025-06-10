@@ -35,6 +35,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import UpdateIcon from "@mui/icons-material/Update";
 import PositionDetailDialog from "../components/PositionDetailDialog";
 import axios from "axios";
+import { useSnackbar } from "../utils/snackbarUtils";
 
 // Thay thế FilterSelect bằng FilterAutocomplete
 const FilterAutocomplete = memo(
@@ -204,11 +205,7 @@ function PositionsTab({
   });
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const { snackbar, handleCloseSnackbar, showSnackbar } = useSnackbar();
   const [closeAllDialogOpen, setCloseAllDialogOpen] = useState(false);
 
   // Sử dụng useMemo để tối ưu performance
@@ -271,26 +268,6 @@ function PositionsTab({
     setTimeout(() => {
       setIsUpdating(false);
     }, 2000);
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
-  const showSnackbar = (message, severity = "success") => {
-    // Đóng snackbar hiện tại nếu đang mở
-    setTimeout(() => {
-      setSnackbar((prev) => ({ ...prev, open: false }));
-    }, 500);
-
-    // Delay 100ms trước khi hiển thị snackbar mới
-    setTimeout(() => {
-      setSnackbar({
-        open: true,
-        message,
-        severity,
-      });
-    }, 500);
   };
 
   const handleCancelAllOrders = async (symbol, side) => {

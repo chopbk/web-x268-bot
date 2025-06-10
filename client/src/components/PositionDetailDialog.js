@@ -25,22 +25,18 @@ import {
   MenuItem,
 } from "@mui/material";
 import axios from "axios";
-
 import PositionOrderForm from "./PositionOrderForm";
-import { calculateQuantity } from "../utils/orderUtils";
+import { calculateQuantity, calculateOrderVolume } from "../utils/orderUtils";
+import { useSnackbar } from "../utils/snackbarUtils";
 
 const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
   const [orders, setOrders] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const { snackbar, handleCloseSnackbar, showSnackbar } = useSnackbar();
   const [newOrder, setNewOrder] = useState({
-    orderType: "OPEN",
+    orderType: "CLOSE",
     type: "LIMIT",
     quantity: "0",
     price: "",
@@ -59,6 +55,7 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
       setNewOrder((prev) => ({
         ...prev,
         quantity: calculateQuantity(100, position.positionAmt),
+        volume: calculateOrderVolume(position),
       }));
     }
   }, [position]);
@@ -99,7 +96,7 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
           },
         }
       );
-      console.log(response.data.data);
+
       if (response.data.success) {
         setOrderHistory(response.data.data);
       }
@@ -108,18 +105,6 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
     } finally {
       setLoadingHistory(false);
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
-  const showSnackbar = (message, severity = "success") => {
-    setSnackbar({
-      open: true,
-      message,
-      severity,
-    });
   };
 
   const handleCancelOrder = async (order) => {
@@ -232,14 +217,14 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
         );
         // Reset form
         setNewOrder({
-          orderType: "OPEN",
+          orderType: "CLOSE",
           type: "LIMIT",
           quantity: "0",
           price: "",
           stopPrice: "",
         });
-        // Refresh positions list
-        onClose();
+        // Refresh orders list
+        await fetchOrders();
       }
     } catch (error) {
       console.error("Error creating order:", error);
@@ -352,7 +337,7 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
                       <TableCell>Price</TableCell>
                       <TableCell>Stop Price</TableCell>
                       <TableCell>Quantity</TableCell>
-                      <TableCell>Status</TableCell>
+                      <TableCell>Volume</TableCell>
                       <TableCell>Time</TableCell>
                       <TableCell>Actions</TableCell>
                     </TableRow>
@@ -366,7 +351,7 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
                         <TableCell>{order.price}</TableCell>
                         <TableCell>{order.stopPrice}</TableCell>
                         <TableCell>{order.origQty}</TableCell>
-                        <TableCell>{order.status}</TableCell>
+                        <TableCell>{calculateOrderVolume(order)}</TableCell>
                         <TableCell>
                           {new Date(order.time).toLocaleString()}
                         </TableCell>
@@ -409,6 +394,7 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
                       <TableCell>Quantity</TableCell>
                       <TableCell>Status</TableCell>
                       <TableCell>Time</TableCell>
+                      <TableCell>Volume</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -424,6 +410,7 @@ const PositionDetailDialog = ({ open, onClose, position, onCancelOrder }) => {
                         <TableCell>
                           {new Date(order.time).toLocaleString()}
                         </TableCell>
+                        <TableCell>{calculateOrderVolume(order)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

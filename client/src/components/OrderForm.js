@@ -43,13 +43,56 @@ const OrderForm = ({
       showSnackbar(errors.join("\n"), "error");
       return;
     }
-
     const orderData = formatOrderData({
       ...newOrder,
       side: calculateSide(newOrder.orderType, newOrder.positionSide),
+      quantity: Number(newOrder.quantity),
+      price: newOrder.price ? Number(newOrder.price) : "",
+      stopPrice: newOrder.stopPrice ? Number(newOrder.stopPrice) : "",
     });
 
     handleCreateOrder(orderData);
+  };
+
+  const handlePriceChange = (field) => (e) => {
+    const newPrice = e.target.value;
+
+    setNewOrder((prev) => {
+      const updatedOrder = {
+        ...prev,
+        [field]: newPrice,
+      };
+
+      // Lấy giá trị price mới nhất
+      const price =
+        field === "price"
+          ? newPrice
+          : field === "stopPrice"
+          ? newPrice
+          : prev.price;
+
+      // Nếu có quantity thì tính volume
+      if (updatedOrder.quantity) {
+        const quantity = Number(updatedOrder.quantity);
+        const volume = Math.floor(quantity * price);
+        return {
+          ...updatedOrder,
+          volume,
+        };
+      }
+
+      // Nếu có volume thì tính quantity
+      if (updatedOrder.volume) {
+        const volume = Number(updatedOrder.volume);
+        const quantity = volume / price;
+        return {
+          ...updatedOrder,
+          quantity,
+        };
+      }
+
+      return updatedOrder;
+    });
   };
 
   return (
@@ -145,7 +188,7 @@ const OrderForm = ({
             label="Price"
             type="number"
             value={newOrder.price}
-            onChange={handleInputChange("price")}
+            onChange={handlePriceChange("price")}
             disabled={
               newOrder.type === "MARKET" ||
               newOrder.type === "STOP_MARKET" ||
@@ -160,7 +203,7 @@ const OrderForm = ({
             label="Stop Price"
             type="number"
             value={newOrder.stopPrice}
-            onChange={handleInputChange("stopPrice")}
+            onChange={handlePriceChange("stopPrice")}
             disabled={
               ![
                 "STOP",

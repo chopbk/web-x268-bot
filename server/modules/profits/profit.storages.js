@@ -13,7 +13,7 @@ class ProfitStorage {
     this.todayProfit[user] = profit;
   }
   setYesterdayProfit(user, profit) {
-    console.log(this);
+    // console.log(this);
     this.yesterdayProfit[user] = profit;
   }
   getTodayProfit(user) {
